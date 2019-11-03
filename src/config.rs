@@ -28,11 +28,15 @@ pub struct RawConfig {
 }
 
 impl RawConfig {
+    pub fn new_from_bytes(content: &[u8]) -> Result<Self, Error> {
+        Ok(toml::from_slice(content)?)
+    }
+
     pub fn new_from_file(filename: PathBuf) -> Result<Self, Error> {
         let mut content = Vec::new();
         File::open(filename)?.read_to_end(&mut content)?;
 
-        Ok(toml::from_slice(&content)?)
+        Self::new_from_bytes(&content)
     }
 }
 
@@ -57,9 +61,8 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new_from_file(filename: PathBuf) -> Result<Self, Error> {
-        let raw = RawConfig::new_from_file(filename)?;
 
+    fn new_from_raw_config(raw: RawConfig) -> Result<Self, Error> {
         let raw_servers = {
             let mut m = HashMap::new();
             for server in raw.server.iter() {
@@ -167,5 +170,29 @@ impl Config {
         Ok(Config {
             server: server_config
         })
+    }
+
+
+    pub fn new_from_file(filename: PathBuf) -> Result<Self, Error> {
+        Self::new_from_raw_config(RawConfig::new_from_file(filename)?)
+    }
+
+    pub fn new_from_bytes(content: &[u8]) -> Result<Self, Error> {
+        Self::new_from_raw_config(RawConfig::new_from_bytes(content)?)
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn load_config(content : &[u8]) -> Config {
+        Config::new_from_bytes(content).expect("could not load config")
+    }
+
+    #[test]
+    fn test_add() {
+        let c = load_config(include_bytes!("./../example/basic.toml"));
     }
 }
