@@ -206,6 +206,8 @@ impl Config {
             .find(|s| { &s.name == server_name  })
             .map(|s| s.clone())
     }
+
+
 }
 
 
@@ -218,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add() {
+    fn test_basic_servers() {
         let c = load_config(r#"
 [[group]]
 name = "servers"
@@ -250,6 +252,59 @@ groups = ["servers"]
         let server2 = c.get_server_clone("server2").expect("2");
         assert_eq!("server2", server2.name);
         assert_eq!(vec!["servers"], server2.get_group_names());
+
+    }
+
+    #[test]
+    fn test_server_in_multiple_groups() {
+        let c = load_config(r#"
+[[group]]
+name = "g1"
+allow = []
+
+[[group]]
+name = "g2"
+allow = []
+
+[[server]]
+name = "server1"
+public_key = "FUZFUFJHGUFU"
+endpoint = "126.0.0.1"
+v4 = "127.0.0.1"
+groups = ["g1", "g2"]
+
+        "#.as_bytes());
+
+        let server1 = c.get_server_clone("server1").expect("1");
+        assert_eq!(vec!["g1", "g2"], server1.get_group_names());
+
+    }
+
+    #[test]
+    fn test_server_A_is_in_a_group_that_allows_server_B() {
+        let c = load_config(r#"
+[[group]]
+name = "g1"
+allow = ["serverB"]
+
+[[server]]
+name = "serverA"
+public_key = "FUZFUFJHGUFU"
+endpoint = "126.0.0.1"
+v4 = "127.0.0.1"
+groups = ["g1"]
+
+[[server]]
+name = "serverB"
+public_key = "FUZFUFJHGUFU"
+endpoint = "126.0.0.1"
+v4 = "127.0.0.1"
+groups = []
+
+        "#.as_bytes());
+
+        let serverA = c.get_server_clone("serverA").expect("1");
+        assert_eq!(1, serverA.allow.len());
 
     }
 }
