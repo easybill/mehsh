@@ -3,6 +3,8 @@ use structopt::StructOpt;
 use failure::Error;
 use crate::config::Config;
 
+#[macro_use] extern crate failure;
+
 
 mod config;
 

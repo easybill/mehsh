@@ -6,6 +6,8 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
+mod allow_addr;
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct RawConfigServer {
     name: String,
