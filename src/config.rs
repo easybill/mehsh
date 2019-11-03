@@ -40,22 +40,34 @@ impl RawConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConfigServer {
     name: String,
     public_key: String,
     endpoint: String,
     v4: String,
     allow: Vec<ConfigAllow>,
+    groups: Vec<ConfigServerGroup>
 }
 
-#[derive(Debug)]
+impl ConfigServer {
+    pub fn get_group_names(&self) -> Vec<&str> {
+        self.groups.iter().map(|g| g.name.as_str()).collect()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConfigServerGroup {
+    name: String
+}
+
+#[derive(Debug, Clone)]
 pub struct ConfigAllow {
     name: String,
     v4: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config {
     server: Vec<ConfigServer>,
 }
@@ -148,7 +160,7 @@ impl Config {
                 raw_groups.get(g)
             }).collect::<Vec<_>>();
 
-            for g in server_group {
+            for g in server_group.iter() {
                 for ga in g.allow.iter() {
                     allows.extend(
                         resolve_allow(&raw_servers, &raw_groups, ga, &mut vec![server.name.clone()])
@@ -161,7 +173,12 @@ impl Config {
                 public_key: server.public_key.clone(),
                 endpoint: server.endpoint.clone(),
                 v4: server.v4.clone(),
-                allow: allows
+                allow: allows,
+                groups: server_group.iter().map(|g| {
+                    ConfigServerGroup {
+                        name: g.name.clone()
+                    }
+                }).collect(),
             }
 
         }).collect();
@@ -172,13 +189,22 @@ impl Config {
         })
     }
 
-
     pub fn new_from_file(filename: PathBuf) -> Result<Self, Error> {
         Self::new_from_raw_config(RawConfig::new_from_file(filename)?)
     }
 
     pub fn new_from_bytes(content: &[u8]) -> Result<Self, Error> {
         Self::new_from_raw_config(RawConfig::new_from_bytes(content)?)
+    }
+
+    pub fn get_servers(&self) -> &Vec<ConfigServer> {
+        &self.server
+    }
+
+    pub fn get_server_clone(&self, server_name : &str) -> Option<ConfigServer> {
+        self.server.iter()
+            .find(|s| { &s.name == server_name  })
+            .map(|s| s.clone())
     }
 }
 
@@ -193,6 +219,37 @@ mod tests {
 
     #[test]
     fn test_add() {
-        let c = load_config(include_bytes!("./../example/basic.toml"));
+        let c = load_config(r#"
+[[group]]
+name = "servers"
+allow = []
+
+[[server]]
+name = "server1"
+public_key = "FUZFUFJHGUFU"
+endpoint = "126.0.0.1"
+v4 = "127.0.0.1"
+groups = ["servers"]
+
+[[server]]
+name = "server2"
+public_key = "xxxxx"
+endpoint = "127.0.0.2"
+v4 = "127.0.0.2"
+groups = ["servers"]
+        "#.as_bytes());
+
+        assert_eq!(2, c.get_servers().len());
+        let server1 = c.get_server_clone("server1").expect("1");
+        assert_eq!("server1", server1.name);
+        assert_eq!("FUZFUFJHGUFU", server1.public_key);
+        assert_eq!("126.0.0.1", server1.endpoint);
+        assert_eq!("127.0.0.1", server1.v4);
+        assert_eq!(vec!["servers"], server1.get_group_names());
+
+        let server2 = c.get_server_clone("server2").expect("2");
+        assert_eq!("server2", server2.name);
+        assert_eq!(vec!["servers"], server2.get_group_names());
+
     }
 }
