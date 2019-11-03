@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 use failure::Error;
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
 use std::path::PathBuf;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -30,7 +30,7 @@ pub struct RawConfig {
 impl RawConfig {
     pub fn new_from_file(filename: PathBuf) -> Result<Self, Error> {
         let mut content = Vec::new();
-        File::open(filename)?.read_to_end(&mut content);
+        File::open(filename)?.read_to_end(&mut content)?;
 
         Ok(toml::from_slice(&content)?)
     }

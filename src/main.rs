@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
-use failure::{Error, Fail};
+use failure::Error;
 use crate::config::Config;
 
 
