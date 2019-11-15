@@ -5,6 +5,7 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use crate::config::allow_addr::AllowAddr;
 
 mod allow_addr;
 
@@ -46,8 +47,8 @@ impl RawConfig {
 pub struct ConfigServer {
     name: String,
     public_key: String,
-    endpoint: String,
-    v4: String,
+    endpoint: AllowAddr,
+    v4: AllowAddr,
     allow: Vec<ConfigAllow>,
     groups: Vec<ConfigServerGroup>
 }
@@ -66,7 +67,7 @@ pub struct ConfigServerGroup {
 #[derive(Debug, Clone)]
 pub struct ConfigAllow {
     name: String,
-    v4: String,
+    v4: AllowAddr,
 }
 
 #[derive(Debug, Clone)]
@@ -112,9 +113,9 @@ impl Config {
             raw_groups: &HashMap<String, RawConfigGroup>,
             name: &String,
             recusion_guard: &mut Vec<String>
-        ) -> Vec<ConfigAllow> {
+        ) -> Result<Vec<ConfigAllow>, Error> {
             if recusion_guard.contains(name) {
-                return vec![];
+                return Ok(vec![]);
             }
 
             recusion_guard.push(name.clone());
@@ -124,18 +125,18 @@ impl Config {
             }
 
             if let Some(s) = raw_servers.get(name) {
-                return vec![
+                return Ok(vec![
                     ConfigAllow {
                         name: s.name.clone(),
-                        v4: s.v4.clone(),
+                        v4: AllowAddr::new_from_str(&s.v4)?,
                     }
-                ];
+                ]);
             }
 
             if let Some(s) = raw_groups.get(name) {
                 let mut buf = vec![];
                 for x in s.allow.iter() {
-                    buf.extend(resolve_allow(&raw_servers, &raw_groups, x, recusion_guard));
+                    buf.extend(resolve_allow(&raw_servers, &raw_groups, x, recusion_guard)?);
                 }
 
                 let servers_in_group = raw_servers.iter().filter(|(_, s)|{
@@ -145,14 +146,14 @@ impl Config {
                 for (_, s) in servers_in_group.iter() {
                     buf.push(ConfigAllow {
                         name: s.name.clone(),
-                        v4: s.v4.clone()
+                        v4: AllowAddr::new_from_str(&s.v4)?
                     });
                 }
 
-                return buf;
+                return Ok(buf);
             }
 
-            vec![]
+            Ok(vec![])
         }
 
         let server_config = raw.server.iter().map(|server| {
@@ -165,25 +166,25 @@ impl Config {
             for g in server_group.iter() {
                 for ga in g.allow.iter() {
                     allows.extend(
-                        resolve_allow(&raw_servers, &raw_groups, ga, &mut vec![server.name.clone()])
+                        resolve_allow(&raw_servers, &raw_groups, ga, &mut vec![server.name.clone()])?
                     )
                 }
             }
 
-            ConfigServer {
+            Ok(ConfigServer {
                 name: server.name.clone(),
                 public_key: server.public_key.clone(),
-                endpoint: server.endpoint.clone(),
-                v4: server.v4.clone(),
+                endpoint: AllowAddr::new_from_str(&server.endpoint)?,
+                v4: AllowAddr::new_from_str(&server.v4)?,
                 allow: allows,
                 groups: server_group.iter().map(|g| {
                     ConfigServerGroup {
                         name: g.name.clone()
                     }
                 }).collect(),
-            }
+            })
 
-        }).collect();
+        }).collect::<Result<Vec<_>, Error>>()?;
 
 
         Ok(Config {
@@ -231,15 +232,15 @@ allow = []
 [[server]]
 name = "server1"
 public_key = "FUZFUFJHGUFU"
-endpoint = "126.0.0.1"
-v4 = "127.0.0.1"
+endpoint = "v4:126.0.0.1"
+v4 = "v4:127.0.0.1"
 groups = ["servers"]
 
 [[server]]
 name = "server2"
 public_key = "xxxxx"
-endpoint = "127.0.0.2"
-v4 = "127.0.0.2"
+endpoint = "v4:127.0.0.2"
+v4 = "v4:127.0.0.2"
 groups = ["servers"]
         "#.as_bytes());
 
@@ -247,8 +248,8 @@ groups = ["servers"]
         let server1 = c.get_server_clone("server1").expect("1");
         assert_eq!("server1", server1.name);
         assert_eq!("FUZFUFJHGUFU", server1.public_key);
-        assert_eq!("126.0.0.1", server1.endpoint);
-        assert_eq!("127.0.0.1", server1.v4);
+        assert_eq!(AllowAddr::new_from_str("v4:126.0.0.1").unwrap(), server1.endpoint);
+        assert_eq!(AllowAddr::new_from_str("v4:127.0.0.1").unwrap(), server1.v4);
         assert_eq!(vec!["servers"], server1.get_group_names());
 
         let server2 = c.get_server_clone("server2").expect("2");
@@ -271,8 +272,8 @@ allow = []
 [[server]]
 name = "server1"
 public_key = "FUZFUFJHGUFU"
-endpoint = "126.0.0.1"
-v4 = "127.0.0.1"
+endpoint = "v4:126.0.0.1"
+v4 = "v4:127.0.0.1"
 groups = ["g1", "g2"]
 
         "#.as_bytes());
@@ -292,15 +293,15 @@ allow = ["serverB"]
 [[server]]
 name = "serverA"
 public_key = "FUZFUFJHGUFU"
-endpoint = "126.0.0.1"
-v4 = "127.0.0.1"
+endpoint = "v4:126.0.0.1"
+v4 = "v4:127.0.0.1"
 groups = ["g1"]
 
 [[server]]
 name = "serverB"
 public_key = "FUZFUFJHGUFU"
-endpoint = "126.0.0.1"
-v4 = "127.0.0.1"
+endpoint = "v4:126.0.0.1"
+v4 = "v4:127.0.0.1"
 groups = []
 
         "#.as_bytes());
