@@ -28,3 +28,8 @@ public_key = "FUZFUFJHGUFU"
 endpoint = "v4:127.0.0.2"
 v4 = "v4:127.0.0.2"
 groups = ["web_servers"]
+
+[[check]]
+from = "web_servers"
+to = "db_servers"
+type = "ping"

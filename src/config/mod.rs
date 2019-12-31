@@ -25,9 +25,17 @@ pub struct RawConfigGroup {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct RawConfigCheck {
+    from: String,
+    to: String,
+    check: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct RawConfig {
     server: Vec<RawConfigServer>,
     group: Vec<RawConfigGroup>,
+    check: Vec<RawConfigCheck>
 }
 
 impl RawConfig {
@@ -45,18 +53,29 @@ impl RawConfig {
 
 #[derive(Debug, Clone)]
 pub struct ConfigServer {
-    name: String,
-    public_key: String,
-    endpoint: AllowAddr,
-    v4: AllowAddr,
-    allow: Vec<ConfigAllow>,
-    groups: Vec<ConfigServerGroup>
+    pub name: String,
+    pub public_key: String,
+    pub endpoint: AllowAddr,
+    pub v4: AllowAddr,
+    pub allow: Vec<ConfigAllow>,
+    pub groups: Vec<ConfigServerGroup>,
+    pub checks: Vec<ConfigServerCheck>
 }
 
 impl ConfigServer {
     pub fn get_group_names(&self) -> Vec<&str> {
         self.groups.iter().map(|g| g.name.as_str()).collect()
     }
+}
+
+enum ConfigServerCheckName {
+    Ping
+}
+
+pub struct ConfigServerCheck {
+    from: AllowAddr,
+    to: AllowAddr,
+    check: ConfigServerCheckName
 }
 
 #[derive(Debug, Clone)]

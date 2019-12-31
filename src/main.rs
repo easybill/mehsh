@@ -18,8 +18,10 @@ struct Opt {
     #[structopt(long = "name")]
     name: String,
 
+    /*
     #[structopt(long = "privatekey")]
     privatekey: String,
+    */
 }
 
 fn main() {
@@ -46,7 +48,18 @@ fn try_main(opt : Opt) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
 
-    println!("config: {:#?}", &config);
+    // println!("config: {:#?}", &config);
+
+    let server_config = match config.get_server_clone(&opt.name) {
+        Some(s) => s,
+        None => {
+            eprintln!(
+                "could not find server, pick one of: {}",
+                config.get_servers().iter().map(|m|{m.name.clone()}).collect::<Vec<_>>().join(", ")
+            );
+            return Ok(());
+        }
+    };
 
     Ok(())
 }
