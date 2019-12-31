@@ -17,6 +17,12 @@ pub enum AllowAddr {
     Group(String, AllowAddrPort),
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum AllowIp {
+    V4(Ipv4Addr),
+    V6(String)
+}
+
 impl AllowAddrPort {
     pub fn new_from_str(s: &str) -> Result<Self, Error> {
         if s == "*" {

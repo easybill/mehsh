@@ -50,6 +50,7 @@ fn try_main(opt : Opt) -> Result<(), Error> {
 
     // println!("config: {:#?}", &config);
 
+    /*
     let server_config = match config.get_server_clone(&opt.name) {
         Some(s) => s,
         None => {
@@ -61,5 +62,6 @@ fn try_main(opt : Opt) -> Result<(), Error> {
         }
     };
 
+    */
     Ok(())
 }

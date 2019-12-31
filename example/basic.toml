@@ -1,35 +1,29 @@
 [[group]]
 name = "db_servers"
-allow = [
-    "web_servers"
-]
 
 [[group]]
 name = "web_servers"
-allow = ["web1"]
 
 [[server]]
 name = "db1"
-public_key = "FUZFUFJHGUFU"
-endpoint = "v4:127.0.0.1"
-v4 = "v4:127.0.0.1"
+ip = "v4:127.0.0.1"
 groups = ["db_servers"]
 
 [[server]]
 name = "web1"
-public_key = "FUZFUFJHGUFU"
-endpoint = "v4:127.0.0.2"
-v4 = "v4:127.0.0.2"
+ip = "v4:127.0.0.2"
 groups = ["web_servers"]
 
 [[server]]
 name = "web2"
-public_key = "FUZFUFJHGUFU"
-endpoint = "v4:127.0.0.2"
-v4 = "v4:127.0.0.2"
+ip = "v4:127.0.0.3"
 groups = ["web_servers"]
 
 [[check]]
 from = "web_servers"
 to = "db_servers"
 type = "ping"
+
+[[allow]]
+from = "web_servers"
+to = "db_servers"
