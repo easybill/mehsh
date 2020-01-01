@@ -4,6 +4,7 @@ use failure::Error;
 use crate::config::Config;
 use tokio::runtime::{Runtime, Builder};
 use crate::check::udp_echo::server::Server;
+use crate::check::udp_echo::client::Client;
 use std::thread::JoinHandle;
 
 mod check;
@@ -60,25 +61,13 @@ fn main() {
 fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
-
-    // println!("config: {:#?}", &config);
-
-    /*
-    let server_config = match config.get_server_clone(&opt.name) {
-        Some(s) => s,
-        None => {
-            eprintln!(
-                "could not find server, pick one of: {}",
-                config.get_servers().iter().map(|m|{m.name.clone()}).collect::<Vec<_>>().join(", ")
-            );
-            return Ok(());
-        }
-    };
-
-    */
-
+    
     let handle = rt.spawn(async move {
-        Server::new().await?.run().await
+        Server::new("0.0.0.0:4232").await?.run().await
+    });
+
+    rt.spawn(async move {
+        Client::new("127.0.0.1:4232").await?.run().await
     });
 
     rt.block_on(handle);

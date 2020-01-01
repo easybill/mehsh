@@ -12,9 +12,9 @@ pub struct Server {
 
 impl Server {
 
-    pub async fn new() -> Result<Self, Error>
+    pub async fn new(host : &str) -> Result<Self, Error>
     {
-        let socket : SocketAddrV4 = "0.0.0.0:4232".parse()?;
+        let socket : SocketAddrV4 = host.parse()?;
         Ok(Server {
             socket: UdpSocket::bind(socket).await?,
             buf: vec![0; 1024],
@@ -29,6 +29,8 @@ impl Server {
         loop {
 
             let (size, target) : (usize, SocketAddr) = socket.recv_from(&mut buf).await?;
+
+            println!("recv ...");
 
             let reply = &buf[0..size];
             let mut send_size = 0;
