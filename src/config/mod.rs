@@ -152,9 +152,19 @@ ip = "127.0.0.2"
 groups = ["g1", "g2"]
         "#.as_bytes());
 
-        assert_eq!(2, c.resolve_idents("g1").unwrap().len());
-        assert_eq!(1, c.resolve_idents("g2").unwrap().len());
+        assert_eq!(
+            vec!["server1", "server2"],
+            {
+                let mut v = c.resolve_idents("g1").unwrap().iter().map(|x| x.identifier.clone()).collect::<Vec<_>>();
+                v.sort();
+                v
+            }
+        );
 
+        assert_eq!(
+            vec!["server2"],
+            c.resolve_idents("g2").unwrap().iter().map(|x|x.identifier.clone()).collect::<Vec<_>>()
+        );
 
     }
 }
