@@ -2,6 +2,11 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 use failure::Error;
 use crate::config::Config;
+use tokio::runtime::{Runtime, Builder};
+use crate::check::udp_echo::server::Server;
+use std::thread::JoinHandle;
+
+mod check;
 
 #[macro_use] extern crate failure;
 
@@ -28,8 +33,16 @@ fn main() {
     let opt = Opt::from_args();
     println!("opt: {:?}", &opt);
 
+    let mut rt : Runtime = Builder::new()
+        .threaded_scheduler()
+        .core_threads(4)
+        .max_threads(10)
+        .enable_all()
+        .build()
+        .unwrap();
 
-    match try_main(opt) {
+
+    match try_main(opt, rt) {
         Err(err ) => {
 
             eprintln!("{:?}", &err);
@@ -44,7 +57,7 @@ fn main() {
     }
 }
 
-fn try_main(opt : Opt) -> Result<(), Error> {
+fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
 
@@ -63,5 +76,12 @@ fn try_main(opt : Opt) -> Result<(), Error> {
     };
 
     */
+
+    let handle = rt.spawn(async move {
+        Server::new().await?.run().await
+    });
+
+    rt.block_on(handle);
+
     Ok(())
 }
