@@ -70,7 +70,6 @@ impl Packet {
             _ => return Err(format_err!("unknown packet type"))
         };
 
-
         Ok(Packet {
             version,
             id,
