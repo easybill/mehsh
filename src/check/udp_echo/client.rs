@@ -10,6 +10,7 @@ use tokio::time;
 use tokio::runtime::Runtime;
 use tokio::task;
 use futures::future;
+use crate::check::udp_echo::packet::Packet;
 
 
 pub struct Client {
@@ -46,9 +47,11 @@ impl Client {
             loop {
                 counter = counter + 1;
 
-                socket_send.send_to(&[counter as u8], &remote_socket).await;
-                println!("client send ...");
+                let packet = Packet::new_req(counter);
 
+                println!("client send {:?}", &packet);
+
+                socket_send.send_to(&packet.to_bytes(), &remote_socket).await;
 
                 interval.tick().await;
             }
@@ -57,12 +60,15 @@ impl Client {
         let recv_handle = task::spawn(async move {
 
             let mut interval = time::interval(Duration::from_millis(50));
+            let mut data = vec![0u8; 100];
 
             loop {
-                let mut data = vec![0u8; 100];
 
-                let len = socker_recv.recv(&mut data).await;
-                println!("client recv ...");
+                let len = socker_recv.recv(&mut data).await.expect("...");
+
+                let package = Packet::new_from_raw(&data[0..len]).expect("could not parse");
+
+                println!("client recv {:?}", &package);
 
                 interval.tick().await;
             }
