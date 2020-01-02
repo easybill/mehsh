@@ -36,11 +36,11 @@ impl Client {
 
         let mut socket = UdpSocket::bind(local_socket).await?;
 
-        let (mut socker_recv, mut socket_send) : (RecvHalf, SendHalf) = socket.split();
+        let (mut socket_recv, mut socket_send) : (RecvHalf, SendHalf) = socket.split();
 
         let send_handle = task::spawn(async move {
 
-            let mut interval = time::interval(Duration::from_millis(50));
+            let mut interval = time::interval(Duration::from_millis(250));
 
             let mut counter : u64 = 0;
 
@@ -51,7 +51,10 @@ impl Client {
 
                 println!("client send {:?}", &packet);
 
-                socket_send.send_to(&packet.to_bytes(), &remote_socket).await;
+                match socket_send.send_to(&packet.to_bytes(), &remote_socket).await {
+                    Ok(_) => {},
+                    Err(e) => eprintln!("client: could not send package to {:?}", &remote_socket)
+                }
 
                 interval.tick().await;
             }
@@ -59,14 +62,28 @@ impl Client {
 
         let recv_handle = task::spawn(async move {
 
-            let mut interval = time::interval(Duration::from_millis(50));
+            let mut interval = time::interval(Duration::from_millis(250));
             let mut data = vec![0u8; 100];
 
             loop {
 
-                let len = socker_recv.recv(&mut data).await.expect("...");
+                let len = match socket_recv.recv(&mut data).await {
+                    Ok(l) => l,
+                    Err(e) => {
+                        eprintln!("could not recv socket {:?}", &socket_recv);
+                        interval.tick().await;
+                        continue;
+                    }
+                };
 
-                let package = Packet::new_from_raw(&data[0..len]).expect("could not parse");
+                let package = match Packet::new_from_raw(&data[0..len]) {
+                    Ok(p) => p,
+                    Err(_) => {
+                        eprintln!("could not parse package {:?}, {:?}", &socket_recv, &data[0..len]);
+                        interval.tick().await;
+                        continue;
+                    }
+                };
 
                 println!("client recv {:?}", &package);
 
