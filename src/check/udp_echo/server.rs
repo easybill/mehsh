@@ -4,6 +4,7 @@ use tokio;
 use tokio::net::UdpSocket;
 use failure::Error;
 use std::net::{Ipv4Addr, SocketAddrV4};
+use crate::check::udp_echo::packet::Packet;
 
 pub struct Server {
     socket: UdpSocket,
@@ -17,7 +18,7 @@ impl Server {
         let socket : SocketAddrV4 = host.parse()?;
         Ok(Server {
             socket: UdpSocket::bind(socket).await?,
-            buf: vec![0; 1024],
+            buf: vec![0; 100],
         })
     }
 
@@ -30,13 +31,17 @@ impl Server {
 
             let (size, target) : (usize, SocketAddr) = socket.recv_from(&mut buf).await?;
 
-            println!("recv ...");
 
             let reply = &buf[0..size];
+
+
+            let recv_packet = Packet::new_from_raw(&buf[0..size]).expect("could not read package");
+            let send_package = Packet::new_resp(recv_packet.get_id()).to_bytes();
+
             let mut send_size = 0;
 
             while send_size < size {
-                match socket.send_to(&buf[send_size..size], target).await {
+                match socket.send_to(&send_package, target).await {
                     Ok(s) => {
                         send_size = send_size + s;
                     }

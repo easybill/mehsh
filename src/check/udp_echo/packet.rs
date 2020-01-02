@@ -68,7 +68,7 @@ impl Packet {
         let id = buf.get_u64();
         let packet_type = match buf.get_u16() {
             1 => PacketType::Req,
-            2 => PacketType::Req,
+            2 => PacketType::Resp,
             _ => return Err(format_err!("unknown packet type"))
         };
 
