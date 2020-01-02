@@ -22,34 +22,34 @@ impl Server {
         })
     }
 
-    pub async fn run(self) -> Result<(), Error> {
-
-        let mut socket = self.socket;
-        let mut buf = self.buf;
+    pub async fn run(mut self) -> Result<(), Error> {
 
         loop {
-
-            let (size, target) : (usize, SocketAddr) = socket.recv_from(&mut buf).await?;
-
-
-            let reply = &buf[0..size];
-
-
-            let recv_packet = Packet::new_from_raw(&buf[0..size]).expect("could not read package");
-            let send_package = Packet::new_resp(recv_packet.get_id()).to_bytes();
-
-            let mut send_size = 0;
-
-            while send_size < size {
-                match socket.send_to(&send_package, target).await {
-                    Ok(s) => {
-                        send_size = send_size + s;
-                    }
-                    Err(e) => {
-                        break;
-                    }
-                };
-            }
+            match self.run_loop().await {
+                Err(e) => { eprintln!("server err: {:?}", e) },
+                _ => ()
+            };
         }
+    }
+
+    async fn run_loop(&mut self) -> Result<(), Error>  {
+
+        let (size, target) : (usize, SocketAddr) = self.socket.recv_from(&mut self.buf).await?;
+
+        let recv_packet = Packet::new_from_raw(&self.buf[0..size]).expect("could not read package");
+        let send_package = Packet::new_resp(recv_packet.get_id()).to_bytes();
+
+        let mut send_size = 0;
+
+        while send_size < size {
+            match self.socket.send_to(&send_package, target).await {
+                Ok(s) => {
+                    send_size = send_size + s;
+                }
+                Err(e) => return Err(e.into())
+            };
+        }
+
+        Ok(())
     }
 }
