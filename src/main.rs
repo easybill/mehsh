@@ -61,7 +61,7 @@ fn main() {
 fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
-    
+
     let handle = rt.spawn(async move {
         Server::new("0.0.0.0:4232").await?.run().await
     });
