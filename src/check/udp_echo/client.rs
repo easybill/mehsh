@@ -62,7 +62,6 @@ impl Client {
 
         let recv_handle = task::spawn(async move {
 
-            let mut interval = time::interval(Duration::from_millis(250));
             let mut data = vec![0u8; 100];
 
             loop {
@@ -71,7 +70,6 @@ impl Client {
                     Ok(l) => l,
                     Err(e) => {
                         eprintln!("could not recv socket {:?}", &socket_recv);
-                        interval.tick().await;
                         continue;
                     }
                 };
@@ -80,14 +78,11 @@ impl Client {
                     Ok(p) => p,
                     Err(_) => {
                         eprintln!("could not parse package {:?}, {:?}", &socket_recv, &data[0..len]);
-                        interval.tick().await;
                         continue;
                     }
                 };
 
                 println!("client recv {:?}", &package);
-
-                interval.tick().await;
             }
         });
 
