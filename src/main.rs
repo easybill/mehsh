@@ -63,6 +63,16 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
 
+    /*
+    let idents = match config.resolve_idents(opt.name.clone()) {
+        Err(_) => {
+            eprintln!("could not resolve {}", &opt.name);
+            panic!("nope");
+        },
+        Ok(k) => k
+    };
+    */
+
     let mut analyzer= Analyzer::new(config.clone());
     let analyzer_sender = analyzer.get_sender_handle();
     rt.spawn(async move {

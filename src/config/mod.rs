@@ -37,7 +37,7 @@ pub struct Config {
 
 type Identifier = String;
 
-struct Ident {
+pub struct Ident {
     identifier: Identifier,
     ip: AllowIp,
 }

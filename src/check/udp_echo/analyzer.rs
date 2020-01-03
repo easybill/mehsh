@@ -1,7 +1,10 @@
 use futures::channel::mpsc::{Receiver, channel, Sender};
 use crate::check::udp_echo::packet::Packet;
-use tokio::stream::StreamExt;
 use crate::config::Config;
+use std::time::{Duration, SystemTime};
+use tokio::time;
+use futures::select;
+use futures::stream::StreamExt;
 
 #[derive(Debug)]
 pub struct AnalyzerEvent {
@@ -39,16 +42,31 @@ impl Analyzer {
         self.sender.clone()
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run(mut self) {
+        let mut interval = time::interval(Duration::from_millis(250)).fuse();
+
+        let mut recv = self.receiver.fuse();
+
         loop {
-            match self.receiver.next().await {
-                None => {
-                    continue;
+
+            select! {
+                () = interval.tick() => {
+                    println!("interval!");
                 },
-                Some(d) => {
-                    println!("foo {:?}", d)
+                data = recv.next() => {
+                    match data {
+                        None => {
+                            continue;
+                        },
+                        Some(d) => {
+                            println!("foo {:?}", d)
+                        }
+                    }
                 }
-            }
+
+            };
+
+
         }
     }
 }
