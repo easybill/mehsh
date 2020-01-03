@@ -11,19 +11,25 @@ use tokio::runtime::Runtime;
 use tokio::task;
 use futures::future;
 use crate::check::udp_echo::packet::Packet;
+use crate::check::udp_echo::analyzer::AnalyzerEvent;
+use futures::channel::mpsc::Sender;
 
 
 pub struct Client {
-    remote_socket: SocketAddr
+    remote_socket: SocketAddr,
+    client_analyzer_sender: Sender<AnalyzerEvent>,
+    host: String
 }
 
 impl Client {
 
-    pub async fn new(host : &str) -> Result<Self, Error>
+    pub async fn new(host : &str, client_analyzer_sender : Sender<AnalyzerEvent>) -> Result<Self, Error>
     {
         let remote_socket : SocketAddr = host.parse()?;
         Ok(Client {
-            remote_socket
+            remote_socket,
+            client_analyzer_sender,
+            host: host.to_string()
         })
     }
 
@@ -38,6 +44,8 @@ impl Client {
 
         let (mut socket_recv, mut socket_send) : (RecvHalf, SendHalf) = socket.split();
 
+        let mut send_client_analyzer_sender = self.client_analyzer_sender.clone();
+        let send_host = self.host.clone();
         let send_handle = task::spawn(async move {
 
             let mut interval = time::interval(Duration::from_millis(250));
@@ -49,7 +57,12 @@ impl Client {
 
                 let packet = Packet::new_req(counter);
 
-                println!("client send {:?}", &packet);
+                // println!("client send {:?}", &packet);
+
+                match send_client_analyzer_sender.try_send(AnalyzerEvent::new(send_host.clone(), packet.clone())) {
+                    Ok(_) => {},
+                    Err(e) => eprintln!("issue with the client_send_handle")
+                };
 
                 match socket_send.send_to(&packet.to_bytes(), &remote_socket).await {
                     Ok(_) => {},
@@ -60,6 +73,8 @@ impl Client {
             }
         });
 
+        let mut recv_client_analyzer_sender = self.client_analyzer_sender.clone();
+        let recv_host = self.host.clone();
         let recv_handle = task::spawn(async move {
 
             let mut data = vec![0u8; 100];
@@ -74,7 +89,7 @@ impl Client {
                     }
                 };
 
-                let package = match Packet::new_from_raw(&data[0..len]) {
+                let packet = match Packet::new_from_raw(&data[0..len]) {
                     Ok(p) => p,
                     Err(_) => {
                         eprintln!("could not parse package {:?}, {:?}", &socket_recv, &data[0..len]);
@@ -82,7 +97,12 @@ impl Client {
                     }
                 };
 
-                println!("client recv {:?}", &package);
+                match recv_client_analyzer_sender.try_send(AnalyzerEvent::new(recv_host.clone(), packet.clone())) {
+                    Ok(_) => {},
+                    Err(e) => eprintln!("issue with the client_send_handle")
+                };
+
+                // println!("client recv {:?}", &packet);
             }
         });
 

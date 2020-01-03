@@ -6,13 +6,13 @@ const PACKAGE_MAGIC: u32 = 326134347;
 
 const PACKAGE_SIZE: usize = size_of::<u32>() + size_of::<u32>() + size_of::<u64>() + size_of::<u16>();
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PacketType {
     Req,
     Resp
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Packet {
     version: u32,
     id: u64,

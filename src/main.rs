@@ -6,6 +6,7 @@ use tokio::runtime::{Runtime, Builder};
 use crate::check::udp_echo::server::Server;
 use crate::check::udp_echo::client::Client;
 use std::thread::JoinHandle;
+use crate::check::udp_echo::analyzer::Analyzer;
 
 mod check;
 
@@ -62,12 +63,19 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
 
+    let mut analyzer= Analyzer::new(config.clone());
+    let analyzer_sender = analyzer.get_sender_handle();
+    rt.spawn(async move {
+        analyzer.run().await
+    });
+
     let handle = rt.spawn(async move {
         Server::new("0.0.0.0:4232").await?.run().await
     });
 
+    let client_analyzer_sender = analyzer_sender;
     rt.spawn(async move {
-        Client::new("127.0.0.1:4232").await?.run().await
+        Client::new("127.0.0.1:4232", client_analyzer_sender).await?.run().await
     });
 
     rt.block_on(handle);
