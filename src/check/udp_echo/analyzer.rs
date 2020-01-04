@@ -72,6 +72,7 @@ impl Analyzer {
 }
 
 struct AnalyzerStatsEntry {
+    remote_host: String,
     req_time: Option<SystemTime>,
     resp_time: Option<SystemTime>,
 }
@@ -86,18 +87,20 @@ impl AnalyzerStats {
 
         let mut time_map = self.map.entry(now.clone()).or_insert(HashMap::new());
 
-        match time_map.entry((event.remote_hostname, event.packet.get_id())) {
+        match time_map.entry((event.remote_hostname.clone(), event.packet.get_id())) {
             Entry::Vacant(e) => {
 
                 let stats_entry = match event.packet.get_type() {
                     &PacketType::Req => {
                         AnalyzerStatsEntry {
+                            remote_host: event.remote_hostname,
                             req_time: Some(now.clone()),
                             resp_time: None,
                         }
                     },
                     &PacketType::Resp => {
                         AnalyzerStatsEntry {
+                            remote_host: event.remote_hostname,
                             req_time: None,
                             resp_time: Some(now.clone()),
                         }
