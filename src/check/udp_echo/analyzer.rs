@@ -117,6 +117,11 @@ impl AnalyzerStats {
                 }
             }
         }
+    }
+
+    pub fn slice(&mut self) {
 
     }
+
+
 }
