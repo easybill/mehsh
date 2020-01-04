@@ -3,8 +3,10 @@ use crate::check::udp_echo::packet::Packet;
 use crate::config::Config;
 use std::time::{Duration, SystemTime};
 use tokio::time;
-use futures::select;
+use futures::future;
 use futures::stream::StreamExt;
+use futures::stream;
+use futures::future::Either;
 
 #[derive(Debug)]
 pub struct AnalyzerEvent {
@@ -43,29 +45,20 @@ impl Analyzer {
     }
 
     pub async fn run(mut self) {
-        let mut interval = time::interval(Duration::from_millis(250)).fuse();
+        let mut interval = time::interval(Duration::from_millis(250)).map(|x|Either::Left(x));
+        let recv = self.receiver.map(|x|Either::Right(x));
 
-        let mut recv = self.receiver.fuse();
+        let mut sel = stream::select(interval, recv);
 
         loop {
 
-            select! {
-                () = interval.tick() => {
-                    println!("interval!");
-                },
-                data = recv.next() => {
-                    match data {
-                        None => {
-                            continue;
-                        },
-                        Some(d) => {
-                            println!("foo {:?}", d)
-                        }
-                    }
+            match sel.next().await {
+                Some(Either::Left(_)) => println!("interval!"),
+                Some(Either::Right(p)) => {
+                    println!("data {:?}", p);
                 }
-
+                None => {}
             };
-
 
         }
     }
