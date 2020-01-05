@@ -2,17 +2,17 @@
 name = "all"
 
 [[server]]
-name = "a"
+name = "testx-1"
 ip = "116.202.8.193"
 groups = ["all"]
 
 [[server]]
-name = "b"
+name = "testx-2"
 ip = "116.202.13.174"
 groups = ["all"]
 
 [[server]]
-name = "c"
+name = "ubuntu-2gb-fsn1-1"
 ip = "78.47.171.55"
 groups = ["all"]
 
