@@ -37,14 +37,43 @@ pub struct Config {
 
 type Identifier = String;
 
+#[derive(Clone)]
 pub struct Ident {
     identifier: Identifier,
     ip: AllowIp,
 }
 
+pub struct ConfigCheck {
+    from: Ident,
+    to: Ident,
+    check: String
+}
+
 impl Config {
     pub fn new_from_bytes(content: &[u8]) -> Result<Self, Error> {
         Ok(toml::from_slice(content)?)
+    }
+
+    pub fn all_checks(&self) -> Result<Vec<ConfigCheck>, Error> {
+        let mut buf = vec![];
+        match &self.check {
+            None => {},
+            Some(checks) => {
+                for check in checks {
+                    for from in &self.resolve_idents(check.from.clone())? {
+                        for to in &self.resolve_idents(check.to.clone())? {
+                            buf.push(ConfigCheck {
+                                from: from.clone(),
+                                to: to.clone(),
+                                check: check.check.clone()
+                            });
+                        }
+                    }
+                }
+            }
+        };
+
+        Ok(buf)
     }
 
     pub fn new_from_file(filename: PathBuf) -> Result<Self, Error> {

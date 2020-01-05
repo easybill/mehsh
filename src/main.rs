@@ -83,6 +83,7 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
         Server::new("0.0.0.0:4232").await?.run().await
     });
 
+
     let client_analyzer_sender = analyzer_sender;
     rt.spawn(async move {
         Client::new("127.0.0.1:4232", client_analyzer_sender).await?.run().await
