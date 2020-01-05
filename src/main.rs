@@ -84,6 +84,11 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
     });
 
     for check in config.all_checks()?.into_iter() {
+
+        if check.from.identifier.to_string() != opt.name {
+            continue;
+        }
+
         let client_analyzer_sender = analyzer_sender.clone();
         let remote = format!("{}:4232", check.from.ip.to_string());
         println!("starting check to {}", &remote);
