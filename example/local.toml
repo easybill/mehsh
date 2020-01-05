@@ -3,7 +3,7 @@ name = "all"
 
 [[server]]
 name = "local"
-ip = "v4:127.0.0.1"
+ip = "127.0.0.1"
 groups = ["all"]
 
 [[check]]

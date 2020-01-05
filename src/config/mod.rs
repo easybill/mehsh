@@ -39,14 +39,14 @@ type Identifier = String;
 
 #[derive(Clone)]
 pub struct Ident {
-    identifier: Identifier,
-    ip: AllowIp,
+    pub identifier: Identifier,
+    pub ip: AllowIp,
 }
 
 pub struct ConfigCheck {
-    from: Ident,
-    to: Ident,
-    check: String
+    pub from: Ident,
+    pub to: Ident,
+    pub check: String
 }
 
 impl Config {

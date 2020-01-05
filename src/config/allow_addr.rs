@@ -23,6 +23,15 @@ pub enum AllowIp {
     V6(String)
 }
 
+impl AllowIp {
+    pub fn to_string(&self) -> String {
+        match &self {
+            AllowIp::V4(v) => v.to_string(),
+            AllowIp::V6(v) => v.to_string(),
+        }
+    }
+}
+
 impl AllowAddrPort {
     pub fn new_from_str(s: &str) -> Result<Self, Error> {
         if s == "*" {
