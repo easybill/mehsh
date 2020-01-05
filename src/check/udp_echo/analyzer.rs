@@ -166,12 +166,13 @@ impl AnalyzerStats {
     {
         let mut map = HashMap::new();
         for entry in stats_entries.into_iter() {
+
             match map.entry(entry.remote_host.clone()) {
                 Entry::Vacant(e) => {
                     let latency = entry.calculate_latency();
                     e.insert(AggregatedStatsEntry {
                         remote_host: entry.remote_host,
-                        req_count: if entry.resp_time.is_none() { 1 } else { 0 },
+                        req_count: 1,
                         resp_count: if entry.resp_time.is_some() { 1 } else { 0 },
                         min_latency: latency,
                         max_latency: latency,
@@ -181,11 +182,11 @@ impl AnalyzerStats {
 
                     let mut_entry = e.get_mut();
 
-                    if entry.resp_time.is_none() {
-                        mut_entry.req_count += 1;
-                    } else {
+                    if entry.resp_time.is_some() {
                         mut_entry.resp_count += 1;
                     }
+
+                    mut_entry.req_count += 1;
 
                     let latency = entry.calculate_latency();
 

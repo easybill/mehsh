@@ -25,7 +25,7 @@ pub struct RawConfigGroup {
 pub struct RawConfigCheck {
     from: String,
     to: String,
-    check: String,
+    check: String
 }
 
 #[derive(Deserialize, Debug, Clone)]

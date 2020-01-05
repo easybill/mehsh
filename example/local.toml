@@ -1,0 +1,12 @@
+[[group]]
+name = "all"
+
+[[server]]
+name = "local"
+ip = "v4:127.0.0.1"
+groups = ["all"]
+
+[[check]]
+from = "local"
+to = "local"
+check = "udp_ping"
