@@ -50,7 +50,7 @@ impl Analyzer {
     }
 
     pub async fn run(mut self) {
-        let mut interval = time::interval(Duration::from_millis(250)).map(|x| Either::Left(x));
+        let mut interval = time::interval(Duration::from_millis(60_000)).map(|x| Either::Left(x));
         let recv = self.receiver.map(|x| Either::Right(x));
 
         let mut sel = stream::select(interval, recv);
@@ -131,22 +131,24 @@ impl AnalyzerStats {
 
     pub fn slice(&mut self) -> Vec<AnalyzerStatsEntry> {
         let mut data = vec![];
-        let now = SystemTime::now();
+        let mut now = SystemTime::now();
 
         let mut old_map = HashMap::new();
 
         ::std::mem::swap(&mut self.map, &mut old_map);
 
         for (time, m) in old_map.into_iter() {
-            let dur = match time.duration_since(now) {
-                Err(_) => continue,
+            let dur = match now.duration_since(time) {
+                Err(_) => { continue },
                 Ok(d) => { d },
             };
 
             if dur.as_secs() < 10 {
+                println!("small");
                 self.map.insert(time, m);
                 continue;
             }
+            println!("large");
 
             for (_, stats_entry) in m.into_iter() {
                 data.push(stats_entry);
