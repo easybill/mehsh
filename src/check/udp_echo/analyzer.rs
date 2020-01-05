@@ -75,15 +75,15 @@ impl Analyzer {
 #[derive(Debug)]
 struct AnalyzerStatsEntry {
     remote_host: String,
-    req_time: Option<SystemTime>,
+    req_time: SystemTime,
     resp_time: Option<SystemTime>,
 }
 
 impl AnalyzerStatsEntry {
     pub fn calculate_latency(&self) -> Option<u128> {
-        match (self.req_time, self.resp_time) {
-            (Some(req), Some(resp))  => {
-                Some(resp.duration_since(req).expect("could not calculate duration").as_micros())
+        match self.resp_time {
+            Some(resp)  => {
+                Some(resp.duration_since(self.req_time).expect("could not calculate duration").as_micros())
             },
             _ => None
         }
@@ -92,7 +92,7 @@ impl AnalyzerStatsEntry {
 }
 
 struct AnalyzerStats {
-    map: HashMap<SystemTime, HashMap<(String, u64), AnalyzerStatsEntry>>,
+    map: HashMap<(String, u64), AnalyzerStatsEntry>,
 }
 
 impl AnalyzerStats {
@@ -105,24 +105,19 @@ impl AnalyzerStats {
     pub fn add_event(&mut self, event: AnalyzerEvent) {
         let now = SystemTime::now();
 
-        let mut time_map = self.map.entry(now.clone()).or_insert(HashMap::new());
-
-        match time_map.entry((event.remote_hostname.clone(), event.packet.get_id())) {
+        match self.map.entry((event.remote_hostname.clone(), event.packet.get_id())) {
             Entry::Vacant(e) => {
                 let stats_entry = match event.packet.get_type() {
                     &PacketType::Req => {
                         AnalyzerStatsEntry {
                             remote_host: event.remote_hostname,
-                            req_time: Some(now.clone()),
+                            req_time: now.clone(),
                             resp_time: None,
                         }
                     }
                     &PacketType::Resp => {
-                        AnalyzerStatsEntry {
-                            remote_host: event.remote_hostname,
-                            req_time: None,
-                            resp_time: Some(now.clone()),
-                        }
+                        // got a response without a request. ignore ...
+                        return;
                     }
                 };
 
@@ -131,7 +126,8 @@ impl AnalyzerStats {
             Entry::Occupied(mut e) => {
                 match event.packet.get_type() {
                     &PacketType::Req => {
-                        e.get_mut().req_time = Some(now);
+                        // got request twice? doesnt make sense.
+                        return;
                     }
                     &PacketType::Resp => {
                         e.get_mut().resp_time = Some(now);
@@ -149,20 +145,18 @@ impl AnalyzerStats {
 
         ::std::mem::swap(&mut self.map, &mut old_map);
 
-        for (time, m) in old_map.into_iter() {
-            let dur = match now.duration_since(time) {
+        for (k, m) in old_map.into_iter() {
+            let dur = match now.duration_since(m.req_time) {
                 Err(_) => { continue; }
                 Ok(d) => { d }
             };
 
             if dur.as_secs() < 1 {
-                self.map.insert(time, m);
+                self.map.insert(k, m);
                 continue;
             }
 
-            for (_, stats_entry) in m.into_iter() {
-                data.push(stats_entry);
-            }
+            data.push(m);
         }
 
         data
@@ -177,7 +171,7 @@ impl AnalyzerStats {
                     let latency = entry.calculate_latency();
                     e.insert(AggregatedStatsEntry {
                         remote_host: entry.remote_host,
-                        req_count: if entry.req_time.is_some() { 1 } else { 0 },
+                        req_count: if entry.resp_time.is_none() { 1 } else { 0 },
                         resp_count: if entry.resp_time.is_some() { 1 } else { 0 },
                         min_latency: latency,
                         max_latency: latency,
@@ -187,23 +181,22 @@ impl AnalyzerStats {
 
                     let mut_entry = e.get_mut();
 
-                    if entry.req_time.is_some() {
+                    if entry.resp_time.is_none() {
                         mut_entry.req_count += 1;
-                    }
-                    if entry.resp_time.is_some() {
+                    } else {
                         mut_entry.resp_count += 1;
                     }
 
                     let latency = entry.calculate_latency();
 
-                    match (latency, mut_entry.min_latency) {
+                    match (mut_entry.min_latency, latency) {
                         (None, None) => {},
                         (None, Some(new)) => { mut_entry.min_latency = Some(new) }
                         (Some(curr), Some(new)) if new < curr => { mut_entry.min_latency = Some(new) }
                         _ => {}
                     };
 
-                    match (latency, mut_entry.max_latency) {
+                    match (mut_entry.max_latency, latency) {
                         (None, None) => {},
                         (None, Some(new)) => { mut_entry.min_latency = Some(new) }
                         (Some(curr), Some(new)) if new > curr => { mut_entry.max_latency = Some(new) }

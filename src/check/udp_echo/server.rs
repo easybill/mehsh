@@ -42,12 +42,14 @@ impl Server {
 
         let mut send_size = 0;
 
+        /*
         {
             let mut rng = rand::thread_rng();
             if rng.gen_range(0, 10) > 5 {
                 return Ok(());
             }
         }
+        */
 
         while send_size < size {
             match self.socket.send_to(&send_package, target).await {
