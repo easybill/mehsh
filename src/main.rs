@@ -90,7 +90,7 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
         }
 
         let client_analyzer_sender = analyzer_sender.clone();
-        let remote = format!("{}:4232", check.from.ip.to_string());
+        let remote = format!("{}:4232", check.to.ip.to_string());
         println!("starting check to {}", &remote);
         rt.spawn(async move {
             Client::new(&remote, client_analyzer_sender).await?.run().await
