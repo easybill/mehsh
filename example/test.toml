@@ -1,0 +1,22 @@
+[[group]]
+name = "all"
+
+[[server]]
+name = "a"
+ip = "116.202.8.193"
+groups = ["all"]
+
+[[server]]
+name = "b"
+ip = "116.202.13.174"
+groups = ["all"]
+
+[[server]]
+name = "c"
+ip = "78.47.171.55"
+groups = ["all"]
+
+[[check]]
+from = "all"
+to = "all"
+check = "udp_ping"
