@@ -50,7 +50,7 @@ impl Analyzer {
     }
 
     pub async fn run(mut self) {
-        let mut interval = time::interval(Duration::from_millis(60_000)).map(|x| Either::Left(x));
+        let mut interval = time::interval(Duration::from_millis(5_000)).map(|x| Either::Left(x));
         let recv = self.receiver.map(|x| Either::Right(x));
 
         let mut sel = stream::select(interval, recv);
@@ -77,7 +77,6 @@ struct AnalyzerStatsEntry {
     remote_host: String,
     req_time: Option<SystemTime>,
     resp_time: Option<SystemTime>,
-    packet_type: PacketType
 }
 
 impl AnalyzerStatsEntry {
@@ -116,7 +115,6 @@ impl AnalyzerStats {
                             remote_host: event.remote_hostname,
                             req_time: Some(now.clone()),
                             resp_time: None,
-                            packet_type: PacketType::Req
                         }
                     }
                     &PacketType::Resp => {
@@ -124,7 +122,6 @@ impl AnalyzerStats {
                             remote_host: event.remote_hostname,
                             req_time: None,
                             resp_time: Some(now.clone()),
-                            packet_type: PacketType::Resp
                         }
                     }
                 };
@@ -158,7 +155,7 @@ impl AnalyzerStats {
                 Ok(d) => { d }
             };
 
-            if dur.as_secs() < 10 {
+            if dur.as_secs() < 1 {
                 self.map.insert(time, m);
                 continue;
             }
@@ -180,8 +177,8 @@ impl AnalyzerStats {
                     let latency = entry.calculate_latency();
                     e.insert(AggregatedStatsEntry {
                         remote_host: entry.remote_host,
-                        req_count: if entry.packet_type == PacketType::Req { 1 } else { 0 },
-                        resp_count: if entry.packet_type == PacketType::Resp { 1 } else { 0 },
+                        req_count: if entry.req_time.is_some() { 1 } else { 0 },
+                        resp_count: if entry.resp_time.is_some() { 1 } else { 0 },
                         min_latency: latency,
                         max_latency: latency,
                     });
@@ -190,10 +187,10 @@ impl AnalyzerStats {
 
                     let mut_entry = e.get_mut();
 
-                    if entry.packet_type == PacketType::Req {
+                    if entry.req_time.is_some() {
                         mut_entry.req_count += 1;
                     }
-                    if entry.packet_type == PacketType::Resp {
+                    if entry.resp_time.is_some() {
                         mut_entry.resp_count += 1;
                     }
 

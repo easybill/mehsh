@@ -5,6 +5,7 @@ use tokio::net::UdpSocket;
 use failure::Error;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use crate::check::udp_echo::packet::Packet;
+use rand::Rng;
 
 pub struct Server {
     socket: UdpSocket,
@@ -40,6 +41,13 @@ impl Server {
         let send_package = Packet::new_resp(recv_packet.get_id()).to_bytes();
 
         let mut send_size = 0;
+
+        {
+            let mut rng = rand::thread_rng();
+            if rng.gen_range(0, 10) > 5 {
+                return Ok(());
+            }
+        }
 
         while send_size < size {
             match self.socket.send_to(&send_package, target).await {
