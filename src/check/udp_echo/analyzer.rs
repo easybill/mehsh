@@ -16,14 +16,14 @@ type RemoteHost = String;
 #[derive(Debug)]
 pub struct AnalyzerEvent {
     remote_hostname: RemoteHost,
-    packet: Packet
+    packet: Packet,
 }
 
 impl AnalyzerEvent {
-    pub fn new(remote_hostname : String, packet : Packet) -> Self {
+    pub fn new(remote_hostname: String, packet: Packet) -> Self {
         AnalyzerEvent {
             remote_hostname,
-            packet
+            packet,
         }
     }
 }
@@ -31,17 +31,17 @@ impl AnalyzerEvent {
 pub struct Analyzer {
     config: Config,
     receiver: Receiver<AnalyzerEvent>,
-    sender: Sender<AnalyzerEvent>
+    sender: Sender<AnalyzerEvent>,
 }
 
 impl Analyzer {
-    pub fn new(config : Config) -> Self {
+    pub fn new(config: Config) -> Self {
         let (sender, receiver) = channel(100);
 
         Analyzer {
             config,
             receiver,
-            sender
+            sender,
         }
     }
 
@@ -50,27 +50,29 @@ impl Analyzer {
     }
 
     pub async fn run(mut self) {
-        let mut interval = time::interval(Duration::from_millis(250)).map(|x|Either::Left(x));
-        let recv = self.receiver.map(|x|Either::Right(x));
+        let mut interval = time::interval(Duration::from_millis(250)).map(|x| Either::Left(x));
+        let recv = self.receiver.map(|x| Either::Right(x));
 
         let mut sel = stream::select(interval, recv);
+        let mut analyzer_stats = AnalyzerStats::new();
 
         loop {
 
-            // todo, sliding window!
-
             match sel.next().await {
-                Some(Either::Left(_)) => println!("interval!"),
+                Some(Either::Left(_)) => {
+                    let data = analyzer_stats.slice();
+                    println!("data: {:?}", data);
+                },
                 Some(Either::Right(p)) => {
-                    println!("data {:?}", p);
+                    analyzer_stats.add_event(p);
                 }
                 None => {}
             };
-
         }
     }
 }
 
+#[derive(Debug)]
 struct AnalyzerStatsEntry {
     remote_host: String,
     req_time: Option<SystemTime>,
@@ -82,14 +84,19 @@ struct AnalyzerStats {
 }
 
 impl AnalyzerStats {
-    pub fn add_event(&mut self, event : AnalyzerEvent) {
+    pub fn new() -> AnalyzerStats {
+        AnalyzerStats {
+            map: HashMap::new()
+        }
+    }
+
+    pub fn add_event(&mut self, event: AnalyzerEvent) {
         let now = SystemTime::now();
 
         let mut time_map = self.map.entry(now.clone()).or_insert(HashMap::new());
 
         match time_map.entry((event.remote_hostname.clone(), event.packet.get_id())) {
             Entry::Vacant(e) => {
-
                 let stats_entry = match event.packet.get_type() {
                     &PacketType::Req => {
                         AnalyzerStatsEntry {
@@ -97,18 +104,18 @@ impl AnalyzerStats {
                             req_time: Some(now.clone()),
                             resp_time: None,
                         }
-                    },
+                    }
                     &PacketType::Resp => {
                         AnalyzerStatsEntry {
                             remote_host: event.remote_hostname,
                             req_time: None,
                             resp_time: Some(now.clone()),
                         }
-                    },
+                    }
                 };
 
                 e.insert(stats_entry);
-            },
+            }
             Entry::Occupied(mut e) => {
                 match event.packet.get_type() {
                     &PacketType::Req => {
@@ -122,9 +129,30 @@ impl AnalyzerStats {
         }
     }
 
-    pub fn slice(&mut self) {
+    pub fn slice(&mut self) -> Vec<AnalyzerStatsEntry> {
+        let mut data = vec![];
+        let now = SystemTime::now();
 
+        let mut old_map = HashMap::new();
+
+        ::std::mem::swap(&mut self.map, &mut old_map);
+
+        for (time, m) in old_map.into_iter() {
+            let dur = match time.duration_since(now) {
+                Err(_) => continue,
+                Ok(d) => { d },
+            };
+
+            if dur.as_secs() < 10 {
+                self.map.insert(time, m);
+                continue;
+            }
+
+            for (_, stats_entry) in m.into_iter() {
+                data.push(stats_entry);
+            }
+        }
+
+        data
     }
-
-
 }
