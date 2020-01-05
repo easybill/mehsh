@@ -57,12 +57,12 @@ impl Analyzer {
         let mut analyzer_stats = AnalyzerStats::new();
 
         loop {
-
             match sel.next().await {
                 Some(Either::Left(_)) => {
                     let data = analyzer_stats.slice();
-                    println!("data: {:?}", data);
-                },
+                    AnalyzerStats::aggrrgate(data);
+                    // println!("data: {:?}", data);
+                }
                 Some(Either::Right(p)) => {
                     analyzer_stats.add_event(p);
                 }
@@ -77,6 +77,19 @@ struct AnalyzerStatsEntry {
     remote_host: String,
     req_time: Option<SystemTime>,
     resp_time: Option<SystemTime>,
+    packet_type: PacketType
+}
+
+impl AnalyzerStatsEntry {
+    pub fn calculate_latency(&self) -> Option<u128> {
+        match (self.req_time, self.resp_time) {
+            (Some(req), Some(resp))  => {
+                Some(resp.duration_since(req).expect("could not calculate duration").as_micros())
+            },
+            _ => None
+        }
+    }
+
 }
 
 struct AnalyzerStats {
@@ -103,6 +116,7 @@ impl AnalyzerStats {
                             remote_host: event.remote_hostname,
                             req_time: Some(now.clone()),
                             resp_time: None,
+                            packet_type: PacketType::Req
                         }
                     }
                     &PacketType::Resp => {
@@ -110,6 +124,7 @@ impl AnalyzerStats {
                             remote_host: event.remote_hostname,
                             req_time: None,
                             resp_time: Some(now.clone()),
+                            packet_type: PacketType::Resp
                         }
                     }
                 };
@@ -139,16 +154,14 @@ impl AnalyzerStats {
 
         for (time, m) in old_map.into_iter() {
             let dur = match now.duration_since(time) {
-                Err(_) => { continue },
-                Ok(d) => { d },
+                Err(_) => { continue; }
+                Ok(d) => { d }
             };
 
             if dur.as_secs() < 10 {
-                println!("small");
                 self.map.insert(time, m);
                 continue;
             }
-            println!("large");
 
             for (_, stats_entry) in m.into_iter() {
                 data.push(stats_entry);
@@ -157,4 +170,63 @@ impl AnalyzerStats {
 
         data
     }
+
+    pub fn aggrrgate(stats_entries: Vec<AnalyzerStatsEntry>)
+    {
+        let mut map = HashMap::new();
+        for entry in stats_entries.into_iter() {
+            match map.entry(entry.remote_host.clone()) {
+                Entry::Vacant(e) => {
+                    let latency = entry.calculate_latency();
+                    e.insert(AggregatedStatsEntry {
+                        remote_host: entry.remote_host,
+                        req_count: if entry.packet_type == PacketType::Req { 1 } else { 0 },
+                        resp_count: if entry.packet_type == PacketType::Resp { 1 } else { 0 },
+                        min_latency: latency,
+                        max_latency: latency,
+                    });
+                }
+                Entry::Occupied(mut e) => {
+
+                    let mut_entry = e.get_mut();
+
+                    if entry.packet_type == PacketType::Req {
+                        mut_entry.req_count += 1;
+                    }
+                    if entry.packet_type == PacketType::Resp {
+                        mut_entry.resp_count += 1;
+                    }
+
+                    let latency = entry.calculate_latency();
+
+                    match (latency, mut_entry.min_latency) {
+                        (None, None) => {},
+                        (None, Some(new)) => { mut_entry.min_latency = Some(new) }
+                        (Some(curr), Some(new)) if new < curr => { mut_entry.min_latency = Some(new) }
+                        _ => {}
+                    };
+
+                    match (latency, mut_entry.max_latency) {
+                        (None, None) => {},
+                        (None, Some(new)) => { mut_entry.min_latency = Some(new) }
+                        (Some(curr), Some(new)) if new > curr => { mut_entry.max_latency = Some(new) }
+                        _ => {}
+                    };
+                }
+            }
+        }
+
+        for (_, item) in map.iter() {
+            println!("host: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}", item.remote_host, item.req_count, item.resp_count, item.max_latency, item.min_latency);
+        }
+    }
+}
+
+struct AggregatedStatsEntry {
+    remote_host: String,
+    req_count: u16,
+    resp_count: u16,
+    min_latency: Option<u128>,
+    max_latency: Option<u128>,
+    // avg_latency: u64
 }
