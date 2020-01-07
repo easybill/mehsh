@@ -48,7 +48,7 @@ impl Client {
         let send_host = self.host.clone();
         let send_handle = task::spawn(async move {
 
-            let mut interval = time::interval(Duration::from_millis(250));
+            let mut interval = time::interval(Duration::from_millis(100));
 
             let mut counter : u64 = 0;
 

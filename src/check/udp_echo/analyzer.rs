@@ -208,7 +208,7 @@ impl AnalyzerStats {
         }
 
         for (_, item) in map.iter() {
-            println!("host: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}", item.remote_host, item.req_count, item.resp_count, item.max_latency, item.min_latency);
+            println!("host: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}", item.remote_host, item.req_count, item.resp_count, item.max_latency, item.min_latency, item.req_count - item.resp_count);
         }
     }
 }
