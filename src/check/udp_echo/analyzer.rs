@@ -36,7 +36,7 @@ pub struct Analyzer {
 
 impl Analyzer {
     pub fn new(config: Config) -> Self {
-        let (sender, receiver) = channel(100);
+        let (sender, receiver) = channel(1000);
 
         Analyzer {
             config,
