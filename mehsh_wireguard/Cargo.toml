@@ -1,0 +1,8 @@
+[package]
+name = "mehsh_wireguard"
+version = "0.1.0"
+authors = ["timglabisch <tim@ainfach.de>"]
+edition = "2018"
+
+[dependencies]
+mehsh_common = { path = "../mehsh_common" }

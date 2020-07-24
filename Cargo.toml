@@ -2,4 +2,5 @@
 members = [
     "mehsh_check",
     "mehsh_common",
+    "mehsh_wireguard",
 ]

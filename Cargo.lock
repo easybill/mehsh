@@ -327,6 +327,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mehsh_wireguard"
+version = "0.1.0"
+dependencies = [
+ "mehsh_common",
+]
+
+[[package]]
 name = "memchr"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
