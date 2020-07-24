@@ -16,6 +16,7 @@ pub struct RawConfigServer {
     groups: Vec<String>,
 }
 
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct RawConfigGroup {
     name: String,

@@ -25,6 +25,9 @@ struct Opt {
     #[structopt(long = "name")]
     name: String,
 
+    #[structopt(long = "privatekey")]
+    privatekey: String,
+
     /*
     #[structopt(long = "privatekey")]
     privatekey: String,
@@ -62,6 +65,8 @@ fn main() {
 fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
+
+    println!("{:#?}", &config);
 
     /*
     let idents = match config.resolve_idents(opt.name.clone()) {

@@ -1,0 +1,15 @@
+[[group]]
+name = "all"
+
+[[servers]]
+[[servers.local]]
+ip = "127.0.0.1"
+groups = ["all"]
+[[servers.local.wireguard_interface]]
+private_key = "PK"
+listen_port = "1234"
+
+[[check]]
+from = "local"
+to = "local"
+check = "udp_ping"
