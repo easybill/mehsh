@@ -5,8 +5,15 @@ name = "all"
 name = "local"
 ip = "127.0.0.1"
 groups = ["all"]
+wireguard_publickey = "xTIBA5rboUvnH4htodjb6e697QjLERt1NAB4mZqp8Dg="
+wireguard_privatekey = "yAnz5TF+lXXJte14tji3zlMNq+hd2rYUIgJBgB3fBmk="
+wireguard_listenport = 51820
 
 [[check]]
 from = "local"
 to = "local"
 check = "udp_ping"
+
+[[wireguard]]
+from = "local"
+to = "local"

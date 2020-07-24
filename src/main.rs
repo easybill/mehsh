@@ -9,6 +9,7 @@ use std::thread::JoinHandle;
 use crate::check::udp_echo::analyzer::Analyzer;
 
 mod check;
+mod wireguard;
 
 #[macro_use] extern crate failure;
 
@@ -33,7 +34,7 @@ struct Opt {
 
 fn main() {
     let opt = Opt::from_args();
-    println!("opt: {:?}", &opt);
+    println!("opt: {:#?}", &opt);
 
     let mut rt : Runtime = Builder::new()
         .threaded_scheduler()
@@ -62,6 +63,8 @@ fn main() {
 fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
+
+    println!("{:#?}", &config);
 
     /*
     let idents = match config.resolve_idents(opt.name.clone()) {

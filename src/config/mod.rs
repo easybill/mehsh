@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use crate::config::allow_addr::{AllowAddr, AllowIp};
+use crate::wireguard::config::RawConfigWireguard;
 
 mod allow_addr;
 
@@ -14,6 +15,9 @@ pub struct RawConfigServer {
     name: String,
     ip: String,
     groups: Vec<String>,
+    wireguard_publickey: Option<String>,
+    wireguard_privatekey: Option<String>,
+    wireguard_listenport: Option<u32>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -33,6 +37,7 @@ pub struct Config {
     server: Vec<RawConfigServer>,
     group: Vec<RawConfigGroup>,
     check: Option<Vec<RawConfigCheck>>,
+    wireguard: Option<Vec<RawConfigWireguard>>,
 }
 
 type Identifier = String;
