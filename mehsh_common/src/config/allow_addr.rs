@@ -2,7 +2,7 @@ use failure::Error;
 use std::net::Ipv4Addr;
 
 #[derive(Debug, Clone, PartialEq)]
-enum AllowAddrPort
+pub enum AllowAddrPort
 {
     Port(usize),
     Range(usize, usize),

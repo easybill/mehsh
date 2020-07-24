@@ -1,10 +1,8 @@
 use std::net::{SocketAddr};
-use std::{env, io};
 use tokio;
 use tokio::net::UdpSocket;
 use failure::Error;
-use std::net::{Ipv4Addr, SocketAddrV4};
-use rand::Rng;
+use std::net::SocketAddrV4;
 use crate::udp_echo::packet::Packet;
 
 pub struct Server {

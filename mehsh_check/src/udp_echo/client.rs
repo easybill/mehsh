@@ -1,13 +1,10 @@
 use std::net::{SocketAddr};
-use std::{env, io};
 use tokio;
 use tokio::net::UdpSocket;
 use failure::Error;
-use std::net::{Ipv4Addr, SocketAddrV4};
 use std::time::Duration;
 use tokio::net::udp::{RecvHalf, SendHalf};
 use tokio::time;
-use tokio::runtime::Runtime;
 use tokio::task;
 use futures::future;
 use futures::channel::mpsc::Sender;
@@ -35,12 +32,12 @@ impl Client {
 
     pub async fn run(self) -> Result<(), Error> {
 
-        let mut remote_socket = self.remote_socket;
+        let remote_socket = self.remote_socket;
 
         let local_socket : SocketAddr = "0.0.0.0:0".parse()?;
 
 
-        let mut socket = UdpSocket::bind(local_socket).await?;
+        let socket = UdpSocket::bind(local_socket).await?;
 
         let (mut socket_recv, mut socket_send) : (RecvHalf, SendHalf) = socket.split();
 
@@ -61,12 +58,12 @@ impl Client {
 
                 match send_client_analyzer_sender.try_send(AnalyzerEvent::new(send_host.clone(), packet.clone())) {
                     Ok(_) => {},
-                    Err(e) => eprintln!("issue with the client_send_handle")
+                    Err(_e) => eprintln!("issue with the client_send_handle")
                 };
 
                 match socket_send.send_to(&packet.to_bytes(), &remote_socket).await {
                     Ok(_) => {},
-                    Err(e) => eprintln!("client: could not send package to {:?}", &remote_socket)
+                    Err(_e) => eprintln!("client: could not send package to {:?}", &remote_socket)
                 }
 
                 interval.tick().await;
@@ -83,7 +80,7 @@ impl Client {
 
                 let len = match socket_recv.recv(&mut data).await {
                     Ok(l) => l,
-                    Err(e) => {
+                    Err(_e) => {
                         eprintln!("could not recv socket {:?}", &socket_recv);
                         continue;
                     }
@@ -99,7 +96,7 @@ impl Client {
 
                 match recv_client_analyzer_sender.try_send(AnalyzerEvent::new(recv_host.clone(), packet.clone())) {
                     Ok(_) => {},
-                    Err(e) => eprintln!("issue with the client_send_handle")
+                    Err(_e) => eprintln!("issue with the client_send_handle")
                 };
 
                 // println!("client recv {:?}", &packet);

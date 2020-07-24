@@ -1,13 +1,11 @@
 use futures::channel::mpsc::{Receiver, channel, Sender};
 use std::time::{Duration, SystemTime};
 use tokio::time;
-use futures::future;
 use futures::stream::StreamExt;
 use futures::stream;
 use futures::future::Either;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::alloc::System;
 use crate::udp_echo::packet::{Packet, PacketType};
 use mehsh_common::config::Config;
 
@@ -49,8 +47,8 @@ impl Analyzer {
         self.sender.clone()
     }
 
-    pub async fn run(mut self) {
-        let mut interval = time::interval(Duration::from_millis(5_000)).map(|x| Either::Left(x));
+    pub async fn run(self) {
+        let interval = time::interval(Duration::from_millis(5_000)).map(|x| Either::Left(x));
         let recv = self.receiver.map(|x| Either::Right(x));
 
         let mut sel = stream::select(interval, recv);
@@ -139,7 +137,7 @@ impl AnalyzerStats {
 
     pub fn slice(&mut self) -> Vec<AnalyzerStatsEntry> {
         let mut data = vec![];
-        let mut now = SystemTime::now();
+        let now = SystemTime::now();
 
         let mut old_map = HashMap::new();
 

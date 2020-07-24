@@ -5,7 +5,7 @@ use serde::Deserialize;
 use std::path::PathBuf;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use crate::config::allow_addr::{AllowAddr, AllowIp};
+use crate::config::allow_addr::AllowIp;
 
 mod allow_addr;
 
@@ -136,7 +136,7 @@ impl Config {
             ]);
         }
 
-        if let Some(s) = raw_groups.get(identifier) {
+        if let Some(_) = raw_groups.get(identifier) {
             let mut buf = vec![];
 
             let servers_in_group = raw_servers.iter().filter(|(_, s)| {
