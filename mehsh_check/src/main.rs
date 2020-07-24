@@ -1,20 +1,18 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
 use failure::Error;
-use crate::config::Config;
+use mehsh_common::config::Config;
 use tokio::runtime::{Runtime, Builder};
-use crate::check::udp_echo::server::Server;
-use crate::check::udp_echo::client::Client;
+use udp_echo::server::Server;
+use udp_echo::client::Client;
 use std::thread::JoinHandle;
-use crate::check::udp_echo::analyzer::Analyzer;
+use udp_echo::analyzer::Analyzer;
 
-mod check;
-mod wireguard;
+pub mod udp_echo;
 
 #[macro_use] extern crate failure;
+extern crate mehsh_common;
 
-
-mod config;
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "basic")]

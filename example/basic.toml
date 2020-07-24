@@ -19,3 +19,6 @@ name = "web2"
 ip = "v4:127.0.0.3"
 groups = ["web_servers"]
 
+[[wirguard]]
+from = "web_servers"
+to = "db_servers"

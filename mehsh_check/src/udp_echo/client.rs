@@ -10,9 +10,9 @@ use tokio::time;
 use tokio::runtime::Runtime;
 use tokio::task;
 use futures::future;
-use crate::check::udp_echo::packet::Packet;
-use crate::check::udp_echo::analyzer::AnalyzerEvent;
 use futures::channel::mpsc::Sender;
+use crate::udp_echo::analyzer::AnalyzerEvent;
+use crate::udp_echo::packet::Packet;
 
 
 pub struct Client {

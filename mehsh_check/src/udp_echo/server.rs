@@ -4,8 +4,8 @@ use tokio;
 use tokio::net::UdpSocket;
 use failure::Error;
 use std::net::{Ipv4Addr, SocketAddrV4};
-use crate::check::udp_echo::packet::Packet;
 use rand::Rng;
+use crate::udp_echo::packet::Packet;
 
 pub struct Server {
     socket: UdpSocket,

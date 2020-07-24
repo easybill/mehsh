@@ -1,6 +1,4 @@
 use futures::channel::mpsc::{Receiver, channel, Sender};
-use crate::check::udp_echo::packet::{Packet, PacketType};
-use crate::config::Config;
 use std::time::{Duration, SystemTime};
 use tokio::time;
 use futures::future;
@@ -10,6 +8,8 @@ use futures::future::Either;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::alloc::System;
+use crate::udp_echo::packet::{Packet, PacketType};
+use mehsh_common::config::Config;
 
 type RemoteHost = String;
 
