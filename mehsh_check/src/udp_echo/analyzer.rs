@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use crate::udp_echo::packet::{Packet, PacketType};
 use mehsh_common::config::Config;
+use chrono::Local;
 
 type RemoteHost = String;
 
@@ -206,7 +207,8 @@ impl AnalyzerStats {
         }
 
         for (_, item) in map.iter() {
-            println!("host: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}", item.remote_host, item.req_count, item.resp_count, item.max_latency, item.min_latency, item.req_count - item.resp_count);
+            let loss = item.req_count - item.resp_count;
+            println!("{} host: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}", Local::now().format("%Y-%m-%d %H:%M:%S").to_string(), item.remote_host, item.req_count, item.resp_count, item.max_latency, item.min_latency, loss, if loss > 0 { "withloss" } else { "withoutloss"});
         }
     }
 }

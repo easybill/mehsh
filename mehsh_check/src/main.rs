@@ -91,12 +91,22 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
             continue;
         }
 
-        let client_analyzer_sender = analyzer_sender.clone();
-        let remote = format!("{}:4232", check.to.ip.to_string());
-        println!("starting check to {}", &remote);
-        rt.spawn(async move {
-            Client::new(&remote, client_analyzer_sender).await?.run().await
-        });
+
+        match check.check.as_str() {
+            "udp_ping" => {
+                let client_analyzer_sender = analyzer_sender.clone();
+                let remote = format!("{}:4232", check.to.ip.to_string());
+                println!("starting check to {}", &remote);
+                rt.spawn(async move {
+                    Client::new(&remote, client_analyzer_sender).await?.run().await
+                });
+            }
+            _ => {
+                panic!("unknown check.");
+            }
+        }
+
+
     }
 
     rt.block_on(handle).expect("could not block on handle").expect("could not block on handle#2");

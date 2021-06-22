@@ -45,7 +45,7 @@ impl Client {
         let send_host = self.host.clone();
         let send_handle = task::spawn(async move {
 
-            let mut interval = time::interval(Duration::from_millis(5));
+            let mut interval = time::interval(Duration::from_millis(25));
 
             let mut counter : u64 = 0;
 
@@ -53,8 +53,6 @@ impl Client {
                 counter = counter + 1;
 
                 let packet = Packet::new_req(counter);
-
-                // println!("client send {:?}", &packet);
 
                 match send_client_analyzer_sender.try_send(AnalyzerEvent::new(send_host.clone(), packet.clone())) {
                     Ok(_) => {},
