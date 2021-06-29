@@ -22,7 +22,7 @@ struct Opt {
     #[structopt(name = "config", parse(from_os_str))]
     config: PathBuf,
 
-    #[structopt(long = "name")]
+    #[structopt(long = "name", default_value="[hostname]")]
     name: String,
 
     /*
@@ -87,7 +87,7 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
     for check in config.all_checks()?.into_iter() {
 
-        if check.from.identifier.to_string() != opt.name {
+        if check.from.identifier.to_string() != opt.name.replace("[hostname]", hostname::get().expect("Hostname should be a string!").into_string().expect("Hostname should be a string!").as_str()) {
             continue;
         }
 
