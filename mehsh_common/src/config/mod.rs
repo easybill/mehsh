@@ -30,7 +30,8 @@ pub struct RawConfigGroup {
 pub struct RawConfigCheck {
     from: String,
     to: String,
-    check: String
+    check: String,
+    http_url: Option<String>
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -52,7 +53,8 @@ pub struct Ident {
 pub struct ConfigCheck {
     pub from: Ident,
     pub to: Ident,
-    pub check: String
+    pub check: String,
+    pub http_url: Option<String>
 }
 
 impl Config {
@@ -71,7 +73,8 @@ impl Config {
                             buf.push(ConfigCheck {
                                 from: from.clone(),
                                 to: to.clone(),
-                                check: check.check.clone()
+                                check: check.check.clone(),
+                                http_url: check.http_url.clone()
                             });
                         }
                     }
