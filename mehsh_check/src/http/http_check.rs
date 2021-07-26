@@ -8,7 +8,7 @@ use crate::http::http_analyzer::HttpAnalyzerEvent;
 use futures::SinkExt;
 
 
-struct HttpCheck {
+pub struct HttpCheck {
     config: ConfigCheck,
     http_analyzer_sender: Sender<HttpAnalyzerEvent>
 }

@@ -50,6 +50,7 @@ pub struct Ident {
     pub ip: AllowIp,
 }
 
+#[derive(Clone)]
 pub struct ConfigCheck {
     pub from: Ident,
     pub to: Ident,

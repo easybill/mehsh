@@ -8,6 +8,8 @@ use tokio::runtime::{Runtime, Builder};
 use udp_echo::server::Server;
 use udp_echo::client::Client;
 use udp_echo::analyzer::Analyzer;
+use crate::http::http_analyzer::HttpAnalyzer;
+use crate::http::http_check::HttpCheck;
 
 pub mod udp_echo;
 pub mod http;
@@ -74,10 +76,16 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
     };
     */
 
-    let analyzer= Analyzer::new(config.clone());
-    let analyzer_sender = analyzer.get_sender_handle();
+    let udp_analyzer = Analyzer::new(config.clone());
+    let udp_analyzer_sender = udp_analyzer.get_sender_handle();
     rt.spawn(async move {
-        analyzer.run().await
+        udp_analyzer.run().await
+    });
+
+    let http_analyzer = HttpAnalyzer::new(config.clone());
+    let http_analyzer_sender = http_analyzer.get_sender_handle();
+    rt.spawn(async move {
+        http_analyzer.run().await
     });
 
     let handle = rt.spawn(async move {
@@ -93,11 +101,17 @@ fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
 
         match check.check.as_str() {
             "udp_ping" => {
-                let client_analyzer_sender = analyzer_sender.clone();
+                let client_analyzer_sender = udp_analyzer_sender.clone();
                 let remote = format!("{}:4232", check.to.ip.to_string());
                 println!("starting check to {}", &remote);
                 rt.spawn(async move {
                     Client::new(&remote, client_analyzer_sender).await?.run().await
+                });
+            }
+            "http" => {
+                let client_analyzer_sender = http_analyzer_sender.clone();
+                rt.spawn(async move {
+                    HttpCheck::new(check.clone(), client_analyzer_sender).run().await
                 });
             }
             _ => {
