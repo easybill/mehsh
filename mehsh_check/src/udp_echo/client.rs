@@ -3,13 +3,13 @@ use tokio;
 use tokio::net::UdpSocket;
 use failure::Error;
 use std::time::Duration;
-use tokio::net::udp::{RecvHalf, SendHalf};
 use tokio::time;
 use tokio::task;
 use futures::future;
 use futures::channel::mpsc::Sender;
 use crate::udp_echo::analyzer::AnalyzerEvent;
 use crate::udp_echo::packet::Packet;
+use std::sync::Arc;
 
 
 pub struct Client {
@@ -39,7 +39,8 @@ impl Client {
 
         let socket = UdpSocket::bind(local_socket).await?;
 
-        let (mut socket_recv, mut socket_send) : (RecvHalf, SendHalf) = socket.split();
+        let socket_recv = Arc::new(socket);
+        let socket_send = socket_recv.clone();
 
         let mut send_client_analyzer_sender = self.client_analyzer_sender.clone();
         let send_host = self.host.clone();

@@ -10,6 +10,7 @@ use udp_echo::client::Client;
 use udp_echo::analyzer::Analyzer;
 
 pub mod udp_echo;
+pub mod http;
 
 #[macro_use] extern crate failure;
 extern crate mehsh_common;
@@ -35,13 +36,11 @@ fn main() {
     let opt = Opt::from_args();
     println!("opt: {:#?}", &opt);
 
-    let rt : Runtime = Builder::new()
-        .threaded_scheduler()
-        .core_threads(4)
-        .max_threads(10)
+    let rt : Runtime = Builder::new_multi_thread()
+        .worker_threads(4)
         .enable_all()
         .build()
-        .unwrap();
+        .expect("could not build runtime");
 
 
     match try_main(opt, rt) {

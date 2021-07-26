@@ -49,24 +49,23 @@ impl Analyzer {
     }
 
     pub async fn run(self) {
-        let interval = time::interval(Duration::from_millis(5_000)).map(|x| Either::Left(x));
-        let recv = self.receiver.map(|x| Either::Right(x));
+        let mut interval = time::interval(Duration::from_millis(5_000));
+        let mut recv = self.receiver;
 
-        let mut sel = stream::select(interval, recv);
         let mut analyzer_stats = AnalyzerStats::new();
 
         loop {
-            match sel.next().await {
-                Some(Either::Left(_)) => {
+            tokio::select! {
+                _ = interval.tick() => {
                     let data = analyzer_stats.slice();
                     AnalyzerStats::aggrrgate(data);
-                    // println!("data: {:?}", data);
                 }
-                Some(Either::Right(p)) => {
-                    analyzer_stats.add_event(p);
+                p = recv.next() => {
+                    if let Some(msg) = p {
+                        analyzer_stats.add_event(msg);
+                    }
                 }
-                None => {}
-            };
+            }
         }
     }
 }
