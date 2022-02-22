@@ -56,7 +56,7 @@ impl Analyzer {
             tokio::select! {
                 _ = interval.tick() => {
                     let data = analyzer_stats.slice();
-                    AnalyzerStats::aggrrgate(data);
+                    AnalyzerStats::aggregate(data);
                 }
                 p = recv.next() => {
                     if let Some(msg) = p {
@@ -158,7 +158,7 @@ impl AnalyzerStats {
         data
     }
 
-    pub fn aggrrgate(stats_entries: Vec<AnalyzerStatsEntry>)
+    pub fn aggregate(stats_entries: Vec<AnalyzerStatsEntry>)
     {
         let mut map = HashMap::new();
         for entry in stats_entries.into_iter() {
