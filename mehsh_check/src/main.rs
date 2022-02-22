@@ -60,7 +60,7 @@ fn main() {
     }
 }
 
-fn try_main(opt : Opt, mut rt : Runtime) -> Result<(), Error> {
+fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
 
     let config = Config::new_from_file(opt.config)?;
 

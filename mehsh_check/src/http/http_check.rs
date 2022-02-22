@@ -1,5 +1,3 @@
-use failure::Error;
-use crate::udp_echo::analyzer::AnalyzerEvent;
 use futures::channel::mpsc::Sender;
 use mehsh_common::config::ConfigCheck;
 use tokio::time::sleep;
@@ -40,7 +38,10 @@ impl HttpCheck {
                 Err(e) => HttpAnalyzerEvent::new(Err(format!("{}", e)))
             };
 
-            self.http_analyzer_sender.send(msg).await;
+            match self.http_analyzer_sender.send(msg).await {
+                Ok(_k) => {},
+                Err(e) => println!("http sender error: {}", e),
+            };
         }
     }
 }

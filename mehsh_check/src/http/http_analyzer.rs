@@ -46,7 +46,7 @@ impl HttpAnalyzer {
                 _ = interval.tick() => {
                     // ...
                 }
-                p = recv.next() => {
+                _p = recv.next() => {
                     // ..
                 }
             }
