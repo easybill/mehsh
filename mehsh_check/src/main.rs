@@ -98,7 +98,6 @@ fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
             continue;
         }
 
-
         match check.check.as_str() {
             "udp_ping" => {
                 let client_analyzer_sender = udp_analyzer_sender.clone();
