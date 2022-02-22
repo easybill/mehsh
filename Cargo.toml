@@ -1,6 +1,5 @@
 [workspace]
 members = [
     "mehsh_check",
-    "mehsh_common",
-    "mehsh_wireguard",
+    "mehsh_common"
 ]
