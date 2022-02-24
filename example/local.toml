@@ -7,6 +7,12 @@ ip = "127.0.0.1"
 datacenter = "fra.dc11"
 groups = ["all"]
 
+[[server]]
+name = "fail"
+ip = "127.0.222.1"
+datacenter = "fra.dc11"
+groups = ["all"]
+
 [[check]]
 from = "local"
 to = "all"
