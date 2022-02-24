@@ -62,7 +62,9 @@ fn main() {
 
 fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
 
-    let config = Config::new_from_file(opt.config)?;
+    let name_self = opt.name.replace("[hostname]", hostname::get().expect("Hostname should be a string!").into_string().expect("Hostname should be a string!").as_str());
+
+    let config = Config::new_from_file(name_self.clone(), opt.config)?;
 
     println!("{:#?}", &config);
 
@@ -94,7 +96,7 @@ fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
 
     for check in config.all_checks()?.into_iter() {
 
-        if check.from.identifier.to_string() != opt.name.replace("[hostname]", hostname::get().expect("Hostname should be a string!").into_string().expect("Hostname should be a string!").as_str()) {
+        if check.from.identifier.to_string() != name_self.as_str() {
             continue;
         }
 

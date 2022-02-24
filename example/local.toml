@@ -4,6 +4,7 @@ name = "all"
 [[server]]
 name = "local"
 ip = "127.0.0.1"
+datacenter = "fra.dc11"
 groups = ["all"]
 
 [[check]]

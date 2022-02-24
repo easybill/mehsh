@@ -13,6 +13,7 @@ mod allow_addr;
 pub struct RawConfigServer {
     #[serde(alias = "name")]
     pub identifier: ServerIdentifier,
+    pub datacenter: Option<String>,
     pub ip: String,
     pub groups: Vec<String>,
 }
@@ -27,7 +28,7 @@ pub struct RawConfigCheck {
     from: String,
     to: String,
     check: String,
-    http_url: Option<String>
+    http_url: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -39,7 +40,9 @@ pub struct RawConfig {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
+    self_server_identifier: ServerIdentifier,
     servers_by_identifier: HashMap<ServerIdentifier, RawConfigServer>,
+    server_self: RawConfigServer,
     server: Vec<RawConfigServer>,
     group: Vec<RawConfigGroup>,
     check: Option<Vec<RawConfigCheck>>,
@@ -58,15 +61,15 @@ pub struct ConfigCheck {
     pub from: Ident,
     pub to: Ident,
     pub check: String,
-    pub http_url: Option<String>
+    pub http_url: Option<String>,
 }
 
 impl Config {
-    pub fn new_from_bytes(content: &[u8]) -> Result<Self, Error> {
+    pub fn new_from_bytes(self_server_identifier: ServerIdentifier, content: &[u8]) -> Result<Self, Error> {
         let raw_config = toml::from_slice::<RawConfig>(content)?;
 
         let servers_by_identifiers = {
-          let mut map = HashMap::new();
+            let mut map = HashMap::new();
             for s in raw_config.server.iter() {
                 map.insert(s.identifier.clone(), s.clone());
             }
@@ -74,8 +77,17 @@ impl Config {
             map
         };
 
+        let server_self = raw_config.server
+            .iter()
+            .find(|v| v.identifier == self_server_identifier)
+            .map(|v| v.clone())
+            .expect(&format!("could not find server {} in config", self_server_identifier.as_str()))
+            ;
+
         Ok(Config {
+            self_server_identifier,
             servers_by_identifier: servers_by_identifiers,
+            server_self,
             server: raw_config.server,
             check: raw_config.check,
             group: raw_config.group,
@@ -85,7 +97,7 @@ impl Config {
     pub fn all_checks(&self) -> Result<Vec<ConfigCheck>, Error> {
         let mut buf = HashMap::new();
         match &self.check {
-            None => {},
+            None => {}
             Some(checks) => {
                 for check in checks {
                     for from in &self.resolve_idents(check.from.clone())? {
@@ -99,7 +111,7 @@ impl Config {
                                 from: from.clone(),
                                 to: to.clone(),
                                 check: check.check.clone(),
-                                http_url: check.http_url.clone()
+                                http_url: check.http_url.clone(),
                             });
                         }
                     }
@@ -107,24 +119,24 @@ impl Config {
             }
         };
 
-        Ok(buf.into_iter().map(|(_k, v)|v).collect::<Vec<_>>())
+        Ok(buf.into_iter().map(|(_k, v)| v).collect::<Vec<_>>())
     }
 
-    pub fn new_from_file(filename: PathBuf) -> Result<Self, Error> {
+    pub fn new_from_file(self_server_identifier: ServerIdentifier, filename: PathBuf) -> Result<Self, Error> {
         let mut content = Vec::new();
         File::open(filename)?.read_to_end(&mut content)?;
 
-        Self::new_from_bytes(&content)
+        Self::new_from_bytes(self_server_identifier, &content)
     }
 
-    pub fn get_server_by_identifier(&self, identifier : &ServerIdentifier) -> Option<&RawConfigServer> {
+    pub fn get_server_by_identifier(&self, identifier: &ServerIdentifier) -> Option<&RawConfigServer> {
         self.servers_by_identifier.get(identifier)
     }
 
     pub fn resolve_idents<I>(&self, raw_identifier: I) -> Result<Vec<Ident>, Error>
-        where I : AsRef<str> + Sized
+        where I: AsRef<str> + Sized
     {
-        let identifier : &str = raw_identifier.as_ref();
+        let identifier: &str = raw_identifier.as_ref();
         let raw_servers = {
             let mut m = HashMap::new();
             for server in self.server.iter() {
@@ -186,7 +198,6 @@ impl Config {
         }
 
         Ok(vec![])
-
     }
 }
 
@@ -230,8 +241,7 @@ groups = ["g1", "g2"]
 
         assert_eq!(
             vec!["server2"],
-            c.resolve_idents("g2").unwrap().iter().map(|x|x.identifier.clone()).collect::<Vec<_>>()
+            c.resolve_idents("g2").unwrap().iter().map(|x| x.identifier.clone()).collect::<Vec<_>>()
         );
-
     }
 }
