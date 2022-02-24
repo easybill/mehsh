@@ -18,6 +18,53 @@ pub struct RawConfigServer {
     pub groups: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ConfigServer {
+    pub identifier: ServerIdentifier,
+    pub datacenter: Option<String>,
+    pub datacenter_as_entries: Vec<String>,
+    pub ip: String,
+    pub groups: Vec<String>,
+}
+
+impl ConfigServer {
+    pub fn from_raw_config_server(raw : RawConfigServer) -> Self {
+        let datacenter_as_entries = {
+          let mut buf = vec![];
+
+            let dc = raw.datacenter.clone().unwrap_or("no-datacenter".to_string());
+
+            let mut path_to_travel = dc;
+            let mut path_traveled = "".to_string();
+            loop {
+                match path_to_travel.clone().split_once(".") {
+                    Some((s1, s2)) => {
+                        buf.push(format!("{}{}", path_traveled, s1).trim_start_matches(".").to_string());
+                        path_to_travel = s2.to_string();
+                        path_traveled.push_str(&format!("{}.", s1))
+                    },
+                    None => {
+                        buf.push(format!("{}{}", path_traveled, path_to_travel).trim_start_matches(".").to_string());
+                        break;
+                    }
+
+                };
+            }
+
+            buf
+
+        };
+
+        Self {
+            identifier: raw.identifier,
+            datacenter: raw.datacenter,
+            datacenter_as_entries,
+            ip: raw.ip,
+            groups: raw.groups,
+        }
+    }
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct RawConfigGroup {
     name: String,
@@ -38,12 +85,12 @@ pub struct RawConfig {
     check: Option<Vec<RawConfigCheck>>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     self_server_identifier: ServerIdentifier,
-    servers_by_identifier: HashMap<ServerIdentifier, RawConfigServer>,
-    server_self: RawConfigServer,
-    server: Vec<RawConfigServer>,
+    servers_by_identifier: HashMap<ServerIdentifier, ConfigServer>,
+    server_self: ConfigServer,
+    server: Vec<ConfigServer>,
     group: Vec<RawConfigGroup>,
     check: Option<Vec<RawConfigCheck>>,
 }
@@ -68,16 +115,20 @@ impl Config {
     pub fn new_from_bytes(self_server_identifier: ServerIdentifier, content: &[u8]) -> Result<Self, Error> {
         let raw_config = toml::from_slice::<RawConfig>(content)?;
 
+        let servers = raw_config.server.iter().map(|s| {
+            ConfigServer::from_raw_config_server(s.clone())
+        }).collect::<Vec<_>>();
+
         let servers_by_identifiers = {
             let mut map = HashMap::new();
-            for s in raw_config.server.iter() {
+            for s in servers.iter() {
                 map.insert(s.identifier.clone(), s.clone());
             }
 
             map
         };
 
-        let server_self = raw_config.server
+        let server_self = servers
             .iter()
             .find(|v| v.identifier == self_server_identifier)
             .map(|v| v.clone())
@@ -88,7 +139,7 @@ impl Config {
             self_server_identifier,
             servers_by_identifier: servers_by_identifiers,
             server_self,
-            server: raw_config.server,
+            server: servers,
             check: raw_config.check,
             group: raw_config.group,
         })
@@ -129,7 +180,7 @@ impl Config {
         Self::new_from_bytes(self_server_identifier, &content)
     }
 
-    pub fn get_server_by_identifier(&self, identifier: &ServerIdentifier) -> Option<&RawConfigServer> {
+    pub fn get_server_by_identifier(&self, identifier: &ServerIdentifier) -> Option<&ConfigServer> {
         self.servers_by_identifier.get(identifier)
     }
 
@@ -222,6 +273,7 @@ name = "g2"
 [[server]]
 name = "server1"
 ip = "127.0.0.1"
+datacenter = "fra.dc11.foo.xyz"
 groups = ["g1"]
 
 [[server]]
@@ -242,6 +294,11 @@ groups = ["g1", "g2"]
         assert_eq!(
             vec!["server2"],
             c.resolve_idents("g2").unwrap().iter().map(|x| x.identifier.clone()).collect::<Vec<_>>()
+        );
+
+        assert_eq!(
+            vec!["fra", "fra.dc11", "fra.dc11.foo", "fra.dc11.foo.xyz"],
+            c.get_server_by_identifier(&"server1".to_string()).expect("server must exists").datacenter_as_entries
         );
     }
 }
