@@ -92,7 +92,7 @@ impl Config {
                         for to in &self.resolve_idents(check.to.clone())? {
                             let key = (from.identifier.clone(), to.identifier.clone(), check.check.clone(), check.http_url.clone());
                             if buf.contains_key(&key) {
-                                eprint!("warning, you defined the same check multiple times. from: {}, to: {}, check: {}", from.identifier.clone(), to.identifier.clone(), check.check.clone());
+                                eprintln!("warning, you defined the same check multiple times. from: {}, to: {}, check: {}", from.identifier.clone(), to.identifier.clone(), check.check.clone());
                             }
 
                             buf.insert(key, ConfigCheck {
