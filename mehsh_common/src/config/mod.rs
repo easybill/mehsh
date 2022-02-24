@@ -83,14 +83,14 @@ impl Config {
     }
 
     pub fn all_checks(&self) -> Result<Vec<ConfigCheck>, Error> {
-        let mut buf = vec![];
+        let mut buf = HashMap::new();
         match &self.check {
             None => {},
             Some(checks) => {
                 for check in checks {
                     for from in &self.resolve_idents(check.from.clone())? {
                         for to in &self.resolve_idents(check.to.clone())? {
-                            buf.push(ConfigCheck {
+                            buf.insert((from.identifier.clone(), to.identifier.clone()), ConfigCheck {
                                 from: from.clone(),
                                 to: to.clone(),
                                 check: check.check.clone(),
@@ -102,7 +102,7 @@ impl Config {
             }
         };
 
-        Ok(buf)
+        Ok(buf.into_iter().map(|(_k, v)|v).collect::<Vec<_>>())
     }
 
     pub fn new_from_file(filename: PathBuf) -> Result<Self, Error> {
