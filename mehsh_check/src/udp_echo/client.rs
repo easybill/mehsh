@@ -10,9 +10,11 @@ use futures::channel::mpsc::Sender;
 use crate::udp_echo::analyzer::AnalyzerEvent;
 use crate::udp_echo::packet::Packet;
 use std::sync::Arc;
+use mehsh_common::config::ConfigCheck;
 
 
 pub struct Client {
+    check: ConfigCheck,
     remote_socket: SocketAddr,
     client_analyzer_sender: Sender<AnalyzerEvent>,
     host: String
@@ -20,22 +22,22 @@ pub struct Client {
 
 impl Client {
 
-    pub async fn new(host : &str, client_analyzer_sender : Sender<AnalyzerEvent>) -> Result<Self, Error>
+    pub async fn new(check: ConfigCheck, client_analyzer_sender : Sender<AnalyzerEvent>) -> Result<Self, Error>
     {
+        let host = format!("{}:4232", check.to.ip.to_string());
         let remote_socket : SocketAddr = host.parse()?;
         Ok(Client {
+            check,
             remote_socket,
             client_analyzer_sender,
-            host: host.to_string()
+            host
         })
     }
 
     pub async fn run(self) -> Result<(), Error> {
 
         let remote_socket = self.remote_socket;
-
         let local_socket : SocketAddr = "0.0.0.0:0".parse()?;
-
 
         let socket = UdpSocket::bind(local_socket).await?;
 
@@ -43,7 +45,7 @@ impl Client {
         let socket_send = socket_recv.clone();
 
         let mut send_client_analyzer_sender = self.client_analyzer_sender.clone();
-        let send_host = self.host.clone();
+        let server_ident = self.check.to.identifier.clone();
         let send_handle = task::spawn(async move {
 
             let mut interval = time::interval(Duration::from_millis(25));
@@ -55,7 +57,7 @@ impl Client {
 
                 let packet = Packet::new_req(counter);
 
-                match send_client_analyzer_sender.try_send(AnalyzerEvent::new(send_host.clone(), packet.clone())) {
+                match send_client_analyzer_sender.try_send(AnalyzerEvent::new(server_ident.clone(), packet.clone())) {
                     Ok(_) => {},
                     Err(_e) => eprintln!("issue with the client_send_handle")
                 };
@@ -70,7 +72,7 @@ impl Client {
         });
 
         let mut recv_client_analyzer_sender = self.client_analyzer_sender.clone();
-        let recv_host = self.host.clone();
+        let recv_ident = self.check.to.identifier.clone();
         let recv_handle = task::spawn(async move {
 
             let mut data = vec![0u8; 100];
@@ -93,7 +95,7 @@ impl Client {
                     }
                 };
 
-                match recv_client_analyzer_sender.try_send(AnalyzerEvent::new(recv_host.clone(), packet.clone())) {
+                match recv_client_analyzer_sender.try_send(AnalyzerEvent::new(recv_ident.clone(),packet.clone())) {
                     Ok(_) => {},
                     Err(_e) => eprintln!("issue with the client_send_handle")
                 };

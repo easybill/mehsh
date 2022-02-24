@@ -11,14 +11,10 @@ mod allow_addr;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct RawConfigServer {
-    name: String,
-    ip: String,
-    groups: Vec<String>,
-    /*
-    wireguard_publickey: Option<String>,
-    wireguard_privatekey: Option<String>,
-    wireguard_listenport: Option<u32>,
-     */
+    #[serde(alias = "name")]
+    pub identifier: ServerIdentifier,
+    pub ip: String,
+    pub groups: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -42,11 +38,11 @@ pub struct Config {
     // wireguard: Option<Vec<RawConfigWireguard>>,
 }
 
-type Identifier = String;
+pub type ServerIdentifier = String;
 
 #[derive(Clone)]
 pub struct Ident {
-    pub identifier: Identifier,
+    pub identifier: ServerIdentifier,
     pub ip: AllowIp,
 }
 
@@ -93,6 +89,10 @@ impl Config {
         Self::new_from_bytes(&content)
     }
 
+    pub fn get_server_by_identifier(&self, identifier : &ServerIdentifier) -> Option<&RawConfigServer> {
+        self.server.iter().find(|s| &s.identifier == identifier)
+    }
+
     pub fn resolve_idents<I>(&self, raw_identifier: I) -> Result<Vec<Ident>, Error>
         where I : AsRef<str> + Sized
     {
@@ -100,7 +100,7 @@ impl Config {
         let raw_servers = {
             let mut m = HashMap::new();
             for server in self.server.iter() {
-                match m.entry(server.name.clone()) {
+                match m.entry(server.identifier.clone()) {
                     Entry::Occupied(v) => {
                         panic!("server {:?} already registered", v.get());
                     }
@@ -134,7 +134,7 @@ impl Config {
         if let Some(s) = raw_servers.get(identifier) {
             return Ok(vec![
                 Ident {
-                    identifier: s.name.clone(),
+                    identifier: s.identifier.clone(),
                     ip: AllowIp::V4(s.ip.parse()?),
                 }
             ]);
@@ -149,7 +149,7 @@ impl Config {
 
             for (_, s) in servers_in_group.iter() {
                 buf.push(Ident {
-                    identifier: s.name.clone(),
+                    identifier: s.identifier.clone(),
                     ip: AllowIp::V4(s.ip.parse()?),
                 });
             }

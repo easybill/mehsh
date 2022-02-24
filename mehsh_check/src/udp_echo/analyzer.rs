@@ -5,21 +5,21 @@ use futures::stream::StreamExt;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use crate::udp_echo::packet::{Packet, PacketType};
-use mehsh_common::config::Config;
+use mehsh_common::config::{Config, ServerIdentifier};
 use chrono::Local;
 
 type RemoteHost = String;
 
 #[derive(Debug)]
 pub struct AnalyzerEvent {
-    remote_hostname: RemoteHost,
+    server_identifier: String,
     packet: Packet,
 }
 
 impl AnalyzerEvent {
-    pub fn new(remote_hostname: String, packet: Packet) -> Self {
+    pub fn new(server_identifier : ServerIdentifier, packet: Packet) -> Self {
         AnalyzerEvent {
-            remote_hostname,
+            server_identifier,
             packet,
         }
     }
@@ -50,13 +50,13 @@ impl Analyzer {
         let mut interval = time::interval(Duration::from_millis(5_000));
         let mut recv = self.receiver;
 
-        let mut analyzer_stats = AnalyzerStats::new();
+        let mut analyzer_stats = AnalyzerStats::new(self.config.clone());
 
         loop {
             tokio::select! {
                 _ = interval.tick() => {
                     let data = analyzer_stats.slice();
-                    AnalyzerStats::aggregate(data);
+                    analyzer_stats.aggregate(data);
                 }
                 p = recv.next() => {
                     if let Some(msg) = p {
@@ -70,7 +70,7 @@ impl Analyzer {
 
 #[derive(Debug)]
 struct AnalyzerStatsEntry {
-    remote_host: String,
+    server_identifier: ServerIdentifier,
     req_time: SystemTime,
     resp_time: Option<SystemTime>,
 }
@@ -88,12 +88,14 @@ impl AnalyzerStatsEntry {
 }
 
 struct AnalyzerStats {
+    config: Config,
     map: HashMap<(String, u64), AnalyzerStatsEntry>,
 }
 
 impl AnalyzerStats {
-    pub fn new() -> AnalyzerStats {
+    pub fn new(config: Config) -> AnalyzerStats {
         AnalyzerStats {
+            config,
             map: HashMap::new()
         }
     }
@@ -101,12 +103,12 @@ impl AnalyzerStats {
     pub fn add_event(&mut self, event: AnalyzerEvent) {
         let now = SystemTime::now();
 
-        match self.map.entry((event.remote_hostname.clone(), event.packet.get_id())) {
+        match self.map.entry((event.server_identifier.clone(), event.packet.get_id())) {
             Entry::Vacant(e) => {
                 let stats_entry = match event.packet.get_type() {
                     &PacketType::Req => {
                         AnalyzerStatsEntry {
-                            remote_host: event.remote_hostname,
+                            server_identifier: event.server_identifier,
                             req_time: now.clone(),
                             resp_time: None,
                         }
@@ -158,16 +160,16 @@ impl AnalyzerStats {
         data
     }
 
-    pub fn aggregate(stats_entries: Vec<AnalyzerStatsEntry>)
+    pub fn aggregate(&self, stats_entries: Vec<AnalyzerStatsEntry>)
     {
         let mut map = HashMap::new();
         for entry in stats_entries.into_iter() {
 
-            match map.entry(entry.remote_host.clone()) {
+            match map.entry(entry.server_identifier.clone()) {
                 Entry::Vacant(e) => {
                     let latency = entry.calculate_latency();
                     e.insert(AggregatedStatsEntry {
-                        remote_host: entry.remote_host,
+                        remote_server_identifier: entry.server_identifier,
                         req_count: 1,
                         resp_count: if entry.resp_time.is_some() { 1 } else { 0 },
                         min_latency: latency,
@@ -205,13 +207,17 @@ impl AnalyzerStats {
 
         for (_, item) in map.iter() {
             let loss = item.req_count - item.resp_count;
-            println!("{} host: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}", Local::now().format("%Y-%m-%d %H:%M:%S").to_string(), item.remote_host, item.req_count, item.resp_count, item.max_latency, item.min_latency, loss, if loss > 0 { "withloss" } else { "withoutloss"});
+            let server_name = self.config.get_server_by_identifier(&item.remote_server_identifier)
+                .and_then(|v|Some(format!("{} ({})", item.remote_server_identifier, v.ip)))
+                .unwrap_or(item.remote_server_identifier.clone());
+
+            println!("{} host: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}", Local::now().format("%Y-%m-%d %H:%M:%S").to_string(), server_name, item.req_count, item.resp_count, item.max_latency, item.min_latency, loss, if loss > 0 { "withloss" } else { "withoutloss"});
         }
     }
 }
 
 struct AggregatedStatsEntry {
-    remote_host: String,
+    remote_server_identifier: ServerIdentifier,
     req_count: u16,
     resp_count: u16,
     min_latency: Option<u128>,

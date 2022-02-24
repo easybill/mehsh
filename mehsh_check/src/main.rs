@@ -101,10 +101,9 @@ fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
         match check.check.as_str() {
             "udp_ping" => {
                 let client_analyzer_sender = udp_analyzer_sender.clone();
-                let remote = format!("{}:4232", check.to.ip.to_string());
-                println!("starting check to {}", &remote);
+                println!("starting check to {}", &check.to.identifier);
                 rt.spawn(async move {
-                    Client::new(&remote, client_analyzer_sender).await?.run().await
+                    Client::new(check.clone(), client_analyzer_sender).await?.run().await
                 });
             }
             "http" => {
