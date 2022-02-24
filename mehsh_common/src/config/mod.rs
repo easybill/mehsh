@@ -31,6 +31,13 @@ pub struct RawConfigCheck {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct RawConfig {
+    server: Vec<RawConfigServer>,
+    group: Vec<RawConfigGroup>,
+    check: Option<Vec<RawConfigCheck>>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     server: Vec<RawConfigServer>,
     group: Vec<RawConfigGroup>,
@@ -56,7 +63,13 @@ pub struct ConfigCheck {
 
 impl Config {
     pub fn new_from_bytes(content: &[u8]) -> Result<Self, Error> {
-        Ok(toml::from_slice(content)?)
+        let raw_config = toml::from_slice::<RawConfig>(content)?;
+
+        Ok(Config {
+            server: raw_config.server,
+            check: raw_config.check,
+            group: raw_config.group,
+        })
     }
 
     pub fn all_checks(&self) -> Result<Vec<ConfigCheck>, Error> {
