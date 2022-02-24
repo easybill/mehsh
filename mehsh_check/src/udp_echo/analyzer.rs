@@ -207,11 +207,21 @@ impl AnalyzerStats {
 
         for (_, item) in map.iter() {
             let loss = item.req_count - item.resp_count;
-            let server_name = self.config.get_server_by_identifier(&item.remote_server_identifier)
-                .and_then(|v|Some(format!("{} ({})", item.remote_server_identifier, v.ip)))
-                .unwrap_or(item.remote_server_identifier.clone());
+            let server_ip = self.config.get_server_by_identifier(&item.remote_server_identifier)
+                .and_then(|v|Some(v.ip.clone()))
+                .unwrap_or("unknown".to_string());
 
-            println!("{} host: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}", Local::now().format("%Y-%m-%d %H:%M:%S").to_string(), server_name, item.req_count, item.resp_count, item.max_latency, item.min_latency, loss, if loss > 0 { "withloss" } else { "withoutloss"});
+            println!(
+                "{} server: {}, ip: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+                &item.remote_server_identifier,
+                server_ip,
+                item.req_count,
+                item.resp_count,
+                item.max_latency,
+                item.min_latency,
+                loss, if loss > 0 { "withloss" } else { "withoutloss"}
+            );
         }
     }
 }
