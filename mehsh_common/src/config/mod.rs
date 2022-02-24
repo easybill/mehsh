@@ -90,7 +90,12 @@ impl Config {
                 for check in checks {
                     for from in &self.resolve_idents(check.from.clone())? {
                         for to in &self.resolve_idents(check.to.clone())? {
-                            buf.insert((from.identifier.clone(), to.identifier.clone()), ConfigCheck {
+                            let key = (from.identifier.clone(), to.identifier.clone(), check.check.clone(), check.http_url.clone());
+                            if buf.contains_key(&key) {
+                                eprint!("warning, you defined the same check multiple times. from: {}, to: {}, check: {}", from.identifier.clone(), to.identifier.clone(), check.check.clone());
+                            }
+
+                            buf.insert(key, ConfigCheck {
                                 from: from.clone(),
                                 to: to.clone(),
                                 check: check.check.clone(),
