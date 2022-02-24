@@ -1,3 +1,4 @@
+use std::cmp::min;
 use futures::channel::mpsc::{Receiver, channel, Sender};
 use std::time::{Duration, SystemTime};
 use tokio::time;
@@ -168,7 +169,7 @@ impl AnalyzerStats {
             match map.entry(entry.server_identifier.clone()) {
                 Entry::Vacant(e) => {
                     let latency = entry.calculate_latency();
-                    e.insert(AggregatedStatsEntry {
+                    e.insert(AggregatedServerStatsEntry {
                         remote_server_identifier: entry.server_identifier,
                         req_count: 1,
                         resp_count: if entry.resp_time.is_some() { 1 } else { 0 },
@@ -205,16 +206,17 @@ impl AnalyzerStats {
             }
         }
 
+        // losses by server
+        let server_self = self.config.get_server_self();
         for (_, item) in map.iter() {
             let loss = item.req_count - item.resp_count;
-            let server_ip = self.config.get_server_by_identifier(&item.remote_server_identifier)
-                .and_then(|v|Some(v.ip.clone()))
-                .unwrap_or("unknown".to_string());
+            let server_info = self.config.get_server_by_identifier(&item.remote_server_identifier).expect("could not find server, should never happen");
+            let server_ip = server_info.ip.clone();
 
             println!(
                 "{} server: {}, ip: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}",
                 Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-                &item.remote_server_identifier,
+                format!("{} -> {}", &server_self.identifier, &item.remote_server_identifier),
                 server_ip,
                 item.req_count,
                 item.resp_count,
@@ -223,11 +225,70 @@ impl AnalyzerStats {
                 loss, if loss > 0 { "withloss" } else { "withoutloss"}
             );
         }
+
+        let datacenter_map = {
+            let mut buffer : HashMap<String, AggregatedDatacenterStatsEntry> = HashMap::new();
+
+            // losses by dc
+            for (_, item) in map.iter() {
+                let server_info = self.config.get_server_by_identifier(&item.remote_server_identifier).expect("could not find server, should never happen");
+
+                for datacenter in &server_info.datacenter_as_entries {
+                    match buffer.entry(datacenter.to_string()) {
+                        Entry::Vacant(e) => {
+                            e.insert(AggregatedDatacenterStatsEntry {
+                                datacenter: datacenter.to_string(),
+                                req_count: item.req_count,
+                                resp_count: item.resp_count,
+                                min_latency: item.min_latency,
+                                max_latency: item.max_latency,
+                            });
+                        }
+                        Entry::Occupied(mut e) => {
+                            let mut_entry = e.get_mut();
+
+                            mut_entry.req_count += item.req_count;
+                            mut_entry.req_count += item.req_count;
+                            mut_entry.min_latency = min(item.min_latency, mut_entry.min_latency);
+                            mut_entry.max_latency = min(item.max_latency, mut_entry.max_latency);
+                        }
+                    };
+                }
+            }
+
+            buffer
+        };
+
+        let datacenter_self = self.config.get_server_self().datacenter.clone().unwrap_or("".to_string());
+        for (_, item) in datacenter_map.iter() {
+            let loss = item.req_count - item.resp_count;
+
+            println!(
+                "{} datacenter: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+                format!("{} -> {}", datacenter_self, &item.datacenter),
+                item.req_count,
+                item.resp_count,
+                item.max_latency,
+                item.min_latency,
+                loss, if loss > 0 { "withloss" } else { "withoutloss"}
+            );
+        }
+
     }
 }
 
-struct AggregatedStatsEntry {
+struct AggregatedServerStatsEntry {
     remote_server_identifier: ServerIdentifier,
+    req_count: u16,
+    resp_count: u16,
+    min_latency: Option<u128>,
+    max_latency: Option<u128>,
+    // avg_latency: u64
+}
+
+struct AggregatedDatacenterStatsEntry {
+    datacenter: String,
     req_count: u16,
     resp_count: u16,
     min_latency: Option<u128>,

@@ -184,6 +184,10 @@ impl Config {
         self.servers_by_identifier.get(identifier)
     }
 
+    pub fn get_server_self(&self) -> &ConfigServer {
+        &self.server_self
+    }
+
     pub fn resolve_idents<I>(&self, raw_identifier: I) -> Result<Vec<Ident>, Error>
         where I: AsRef<str> + Sized
     {
