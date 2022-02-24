@@ -207,7 +207,7 @@ mod tests {
     use super::*;
 
     fn load_config(content: &[u8]) -> Config {
-        Config::new_from_bytes(content).expect("could not load config")
+        Config::new_from_bytes("server1".to_string(), content).expect("could not load config")
     }
 
     #[test]
