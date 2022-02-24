@@ -248,7 +248,7 @@ impl AnalyzerStats {
                             let mut_entry = e.get_mut();
 
                             mut_entry.req_count += item.req_count;
-                            mut_entry.req_count += item.req_count;
+                            mut_entry.resp_count += item.resp_count;
                             mut_entry.min_latency = min(item.min_latency, mut_entry.min_latency);
                             mut_entry.max_latency = min(item.max_latency, mut_entry.max_latency);
                         }
