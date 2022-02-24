@@ -39,10 +39,10 @@ pub struct RawConfig {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
+    servers_by_identifier: HashMap<ServerIdentifier, RawConfigServer>,
     server: Vec<RawConfigServer>,
     group: Vec<RawConfigGroup>,
     check: Option<Vec<RawConfigCheck>>,
-    // wireguard: Option<Vec<RawConfigWireguard>>,
 }
 
 pub type ServerIdentifier = String;
@@ -65,7 +65,17 @@ impl Config {
     pub fn new_from_bytes(content: &[u8]) -> Result<Self, Error> {
         let raw_config = toml::from_slice::<RawConfig>(content)?;
 
+        let servers_by_identifiers = {
+          let mut map = HashMap::new();
+            for s in raw_config.server.iter() {
+                map.insert(s.identifier.clone(), s.clone());
+            }
+
+            map
+        };
+
         Ok(Config {
+            servers_by_identifier: servers_by_identifiers,
             server: raw_config.server,
             check: raw_config.check,
             group: raw_config.group,
@@ -103,7 +113,7 @@ impl Config {
     }
 
     pub fn get_server_by_identifier(&self, identifier : &ServerIdentifier) -> Option<&RawConfigServer> {
-        self.server.iter().find(|s| &s.identifier == identifier)
+        self.servers_by_identifier.get(identifier)
     }
 
     pub fn resolve_idents<I>(&self, raw_identifier: I) -> Result<Vec<Ident>, Error>
