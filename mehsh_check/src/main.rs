@@ -8,6 +8,7 @@ use tokio::runtime::{Runtime, Builder};
 use udp_echo::server::Server;
 use udp_echo::client::Client;
 use udp_echo::analyzer::Analyzer;
+use crate::analyzer_event::analyzer_event_subsciber_stdout::AnalyzerEventSubscriverStout;
 use crate::broadcast::BroadcastEvent;
 use crate::http::http_analyzer::HttpAnalyzer;
 use crate::http::http_check::HttpCheck;
@@ -116,6 +117,10 @@ fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
 
 
     }
+
+    rt.spawn(async move {
+        AnalyzerEventSubscriverStout::new(broardcast_recv).run().await
+    });
 
     rt.block_on(handle).expect("could not block on handle").expect("could not block on handle#2");
 

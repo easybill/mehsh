@@ -9,6 +9,7 @@ use crate::udp_echo::packet::{Packet, PacketType};
 use mehsh_common::config::{Config, ServerIdentifier};
 use chrono::Local;
 use crate::BroadcastEvent;
+use crate::udp_echo::analyzer_event::{UdpEchoAnalyzerEventDatacenter, UdpEchoAnalyzerEventServer};
 
 type RemoteHost = String;
 
@@ -210,21 +211,24 @@ impl AnalyzerStats {
         // losses by server
         let server_self = self.config.get_server_self();
         for (_, item) in map.iter() {
-            let loss = item.req_count - item.resp_count;
             let server_info = self.config.get_server_by_identifier(&item.remote_server_identifier).expect("could not find server, should never happen");
             let server_ip = server_info.ip.clone();
 
-            println!(
-                "{} server: {}, ip: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}",
-                Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-                format!("{} -> {}", &server_self.identifier, &item.remote_server_identifier),
-                server_ip,
-                item.req_count,
-                item.resp_count,
-                item.max_latency,
-                item.min_latency,
-                loss, if loss > 0 { "withloss" } else { "withoutloss"}
-            );
+            match broadcast.send(BroadcastEvent::UdpEchoAnalyzerEventServer(UdpEchoAnalyzerEventServer {
+                date_time: Local::now(),
+                server_from: server_self.identifier.to_string(),
+                server_to: item.remote_server_identifier.to_string(),
+                server_to_ip: server_ip,
+                req_count : item.req_count,
+                resp_count : item.resp_count,
+                max_latency : item.max_latency,
+                min_latency : item.min_latency,
+            })) {
+                Ok(_) => {},
+                Err(e) => {
+                    eprintln!("warning, issue with broadcasting server event: {:?}", e)
+                }
+            };
         }
 
         let datacenter_map = {
@@ -262,18 +266,21 @@ impl AnalyzerStats {
 
         let datacenter_self = self.config.get_server_self().datacenter.clone().unwrap_or("".to_string());
         for (_, item) in datacenter_map.iter() {
-            let loss = item.req_count - item.resp_count;
-
-            println!(
-                "{} datacenter: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}",
-                Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
-                format!("{} -> {}", datacenter_self, &item.datacenter),
-                item.req_count,
-                item.resp_count,
-                item.max_latency,
-                item.min_latency,
-                loss, if loss > 0 { "withloss" } else { "withoutloss"}
-            );
+            match broadcast.send(BroadcastEvent::UdpEchoAnalyzerEventDatacenter(UdpEchoAnalyzerEventDatacenter {
+                date_time: Local::now(),
+                server_from: server_self.identifier.to_string(),
+                datacenter_from: datacenter_self.to_string(),
+                datacenter_to: item.datacenter.to_string(),
+                req_count : item.req_count,
+                resp_count : item.resp_count,
+                max_latency : item.max_latency,
+                min_latency : item.min_latency,
+            })) {
+                Ok(_) => {},
+                Err(e) => {
+                    eprintln!("warning, issue with broadcasting datacenter event: {:?}", e)
+                }
+            };
         }
 
     }
