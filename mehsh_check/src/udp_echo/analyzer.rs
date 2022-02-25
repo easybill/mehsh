@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry;
 use crate::udp_echo::packet::{Packet, PacketType};
 use mehsh_common::config::{Config, ServerIdentifier};
 use chrono::Local;
+use crate::BroadcastEvent;
 
 type RemoteHost = String;
 
@@ -47,7 +48,7 @@ impl Analyzer {
         self.sender.clone()
     }
 
-    pub async fn run(self) {
+    pub async fn run(self, mut broadcast : ::tokio::sync::broadcast::Sender<BroadcastEvent>) {
         let mut interval = time::interval(Duration::from_millis(5_000));
         let mut recv = self.receiver;
 
@@ -57,7 +58,7 @@ impl Analyzer {
             tokio::select! {
                 _ = interval.tick() => {
                     let data = analyzer_stats.slice();
-                    analyzer_stats.aggregate(data);
+                    analyzer_stats.aggregate(data, &mut broadcast);
                 }
                 p = recv.next() => {
                     if let Some(msg) = p {
@@ -97,7 +98,7 @@ impl AnalyzerStats {
     pub fn new(config: Config) -> AnalyzerStats {
         AnalyzerStats {
             config,
-            map: HashMap::new()
+            map: HashMap::new(),
         }
     }
 
@@ -161,7 +162,7 @@ impl AnalyzerStats {
         data
     }
 
-    pub fn aggregate(&self, stats_entries: Vec<AnalyzerStatsEntry>)
+    pub fn aggregate(&self, stats_entries: Vec<AnalyzerStatsEntry>, broadcast: &mut ::tokio::sync::broadcast::Sender<BroadcastEvent>)
     {
         let mut map = HashMap::new();
         for entry in stats_entries.into_iter() {

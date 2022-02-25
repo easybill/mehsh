@@ -8,11 +8,14 @@ use tokio::runtime::{Runtime, Builder};
 use udp_echo::server::Server;
 use udp_echo::client::Client;
 use udp_echo::analyzer::Analyzer;
+use crate::broadcast::BroadcastEvent;
 use crate::http::http_analyzer::HttpAnalyzer;
 use crate::http::http_check::HttpCheck;
 
 pub mod udp_echo;
 pub mod http;
+pub mod broadcast;
+pub mod analyzer_event;
 
 #[macro_use] extern crate failure;
 extern crate mehsh_common;
@@ -68,20 +71,12 @@ fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
 
     println!("{:#?}", &config);
 
-    /*
-    let idents = match config.resolve_idents(opt.name.clone()) {
-        Err(_) => {
-            eprintln!("could not resolve {}", &opt.name);
-            panic!("nope");
-        },
-        Ok(k) => k
-    };
-    */
+    let (broardcast_sender, broardcast_recv) = ::tokio::sync::broadcast::channel::<BroadcastEvent>(1000);
 
     let udp_analyzer = Analyzer::new(config.clone());
     let udp_analyzer_sender = udp_analyzer.get_sender_handle();
     rt.spawn(async move {
-        udp_analyzer.run().await
+        udp_analyzer.run(broardcast_sender).await
     });
 
     let http_analyzer = HttpAnalyzer::new(config.clone());
@@ -123,6 +118,8 @@ fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
     }
 
     rt.block_on(handle).expect("could not block on handle").expect("could not block on handle#2");
+
+
 
     Ok(())
 }
