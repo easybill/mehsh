@@ -13,6 +13,7 @@ rand = "*"
 chrono = "0.4.*"
 reqwest = "0.11.*"
 hostname = "0.3.*"
+serverdensity_udpserver_lib = { git = "https://github.com/easybill/serverdensity-udp-agent", branch = "master" }
 mehsh_common = { path = "../mehsh_common" }
 
 [dependencies.tokio]
