@@ -6,12 +6,14 @@ name = "local"
 ip = "127.0.0.1"
 datacenter = "fra.dc11"
 groups = ["all"]
+serverdensity_udp_agent = true
 
 [[server]]
 name = "fail"
 ip = "127.0.222.1"
 datacenter = "fra.dc11"
 groups = ["all"]
+serverdensity_udp_agent = true
 
 [[check]]
 from = "local"
