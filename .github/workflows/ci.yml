@@ -19,11 +19,11 @@ jobs:
       matrix:
         platform:
           # mac target
-          - { os: 'macos-latest', target: 'x86_64-apple-darwin', arch: 'x86_64', osn: 'mac' }
-          - { os: 'macos-latest', target: 'aarch64-apple-darwin', arch: 'aarch64', osn: 'mac' }
+          #- { os: 'macos-latest', target: 'x86_64-apple-darwin', arch: 'x86_64', osn: 'mac' }
+          #- { os: 'macos-latest', target: 'aarch64-apple-darwin', arch: 'aarch64', osn: 'mac' }
           # linux target
           - { os: 'ubuntu-latest', target: 'x86_64-unknown-linux-musl', arch: 'x86_64', osn: 'ubuntu-latest' }
-          - { os: 'ubuntu-latest', target: 'aarch64-unknown-linux-musl', arch: 'aarch64', osn: 'ubuntu-latest' }
+          #- { os: 'ubuntu-latest', target: 'aarch64-unknown-linux-musl', arch: 'aarch64', osn: 'ubuntu-latest' }
     steps:
       - name: Set output
         id: vars
@@ -38,12 +38,12 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release --target ${{ matrix.platform.target }}
+          args: --release --target ${{ matrix.platform.target }} --bin mehsh_check
       - name: Prepare output artifact for next step
         uses: actions/upload-artifact@v3
         with:
           name: mehsh_${{ matrix.platform.osn }}_${{ matrix.platform.arch }}
-          path: target/mehsh_${{ matrix.platform.osn }}_${{ matrix.platform.arch }}
+          path: native/target/${{ matrix.platform.target }}/release/mehsh_check
 
   release:
     runs-on: 'ubuntu-latest'
