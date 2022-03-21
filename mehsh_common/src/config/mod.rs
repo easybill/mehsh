@@ -16,6 +16,7 @@ pub struct RawConfigServer {
     pub datacenter: Option<String>,
     pub ip: String,
     pub groups: Vec<String>,
+    pub serverdensity_udp_agent: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +26,7 @@ pub struct ConfigServer {
     pub datacenter_as_entries: Vec<String>,
     pub ip: String,
     pub groups: Vec<String>,
+    pub serverdensity_udp_agent: bool,
 }
 
 impl ConfigServer {
@@ -61,6 +63,7 @@ impl ConfigServer {
             datacenter_as_entries,
             ip: raw.ip,
             groups: raw.groups,
+            serverdensity_udp_agent: raw.serverdensity_udp_agent.unwrap_or(false),
         }
     }
 }
