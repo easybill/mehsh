@@ -34,6 +34,10 @@ jobs:
           toolchain: stable
           target: ${{ matrix.platform.target }}
           override: true
+      - name: install packages
+        if: matrix.platform.os == 'ubuntu-latest'
+        run: |
+          apt-get install -y openssl-devel
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
