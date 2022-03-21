@@ -52,14 +52,13 @@ jobs:
       - name: download artifacts
         uses: actions/download-artifact@v3
         with:
-          path: binaries
+          path: .
       - name: install packages
         run: |
           ls .
-          ls binaries/
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            binaries/*
+            mehsh_*
