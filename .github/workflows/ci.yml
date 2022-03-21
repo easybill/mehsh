@@ -37,7 +37,7 @@ jobs:
       - name: install packages
         if: matrix.platform.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install -y openssl-devel
+          sudo apt-get install -y libssl-dev
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
