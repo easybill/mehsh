@@ -34,20 +34,20 @@ jobs:
           toolchain: stable
           target: ${{ matrix.platform.target }}
           override: true
-      - name: install packages
-        if: matrix.platform.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get install -y pkg-config libssl-dev
       - uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
           args: --release --target ${{ matrix.platform.target }} --bin mehsh_check
+      - name: install packages
+        run: |
+          ls target
+          ls target/${{ matrix.platform.target }}
       - name: Prepare output artifact for next step
         uses: actions/upload-artifact@v3
         with:
           name: mehsh_${{ matrix.platform.osn }}_${{ matrix.platform.arch }}
-          path: native/target/${{ matrix.platform.target }}/release/mehsh_check
+          path: target/${{ matrix.platform.target }}/release/mehsh_check
 
   release:
     runs-on: 'ubuntu-latest'
