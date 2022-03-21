@@ -39,11 +39,15 @@ jobs:
           use-cross: true
           command: build
           args: --release --target ${{ matrix.platform.target }} --bin mehsh_check
+      - name: mv artifacts
+        run: |
+          mkdir -p artifact
+          mv target/${{ matrix.platform.target }}/release/mehsh_check artifact/mehsh_${{ matrix.platform.osn }}_${{ matrix.platform.arch }}
       - name: Prepare output artifact for next step
         uses: actions/upload-artifact@v3
         with:
           name: mehsh_${{ matrix.platform.osn }}_${{ matrix.platform.arch }}
-          path: target/${{ matrix.platform.target }}/release/mehsh_check
+          path: artifact/mehsh_${{ matrix.platform.osn }}_${{ matrix.platform.arch }}
 
   release:
     runs-on: 'ubuntu-latest'
@@ -56,11 +60,10 @@ jobs:
       - name: install packages
         run: |
           ls .
-          ls binaries/
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           fail_on_unmatched_files: true
           files: |
-            binaries/**
+            binaries/*/*
