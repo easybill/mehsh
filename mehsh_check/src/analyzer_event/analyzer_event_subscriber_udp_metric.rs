@@ -45,6 +45,7 @@ impl AnalyzerEventSubscriberUdpMetric {
         let loss = event.req_count - event.resp_count;
         let target: SocketAddrV4 = "127.0.0.1:1113".parse()?;
 
+        sock.send_to(create_package_sum("mehsh.loss", loss as i32).map_err(|e| anyhow!(e))?.as_slice(), target).await?;
         sock.send_to(create_package_sum(format!("mehsh.sendloss.{}", &event.server_from), loss as i32).map_err(|e| anyhow!(e))?.as_slice(), target).await?;
         sock.send_to(create_package_sum(format!("mehsh.recvloss.{}", &event.server_to), loss as i32).map_err(|e| anyhow!(e))?.as_slice(), target).await?;
 
