@@ -5,6 +5,11 @@ It sends UDP packets from server to server and measures how many packets have di
 
 Mehsh allows more complex configurations.  So it is possible to define the complete server landscape in a configuration file and to specify the current server when starting Mehsh (default is the hostname).
 
+### Download
+You can download the latest binaries from the [releases page](https://github.com/easybill/mehsh/releases) or use these permalinks for the latest version:
+- [mehsh_linux_latest_x86_64](https://github.com/easybill/mehsh/releases/latest/download/mehsh_ubuntu-latest_x86_64)
+- [mehsh_linux_latest_aarch64](https://github.com/easybill/mehsh/releases/latest/download/mehsh_ubuntu-latest_aarch64)
+
 ### Example 1 (works local)
 
 mehsh.toml:
