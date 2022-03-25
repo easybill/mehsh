@@ -71,7 +71,7 @@ Fields:
 # repeats every second.
 ```
 
-### Example 1 (lamp stack)
+### Example 2 (lamp stack)
 
 ```mermaid
   graph TD;
