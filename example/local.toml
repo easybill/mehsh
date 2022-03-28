@@ -19,3 +19,10 @@ serverdensity_udp_agent = true
 from = "local"
 to = "all"
 check = "udp_ping"
+
+[[analysis]]
+from = "local"
+to = "all"
+name = "mtr"
+min_loss = 20
+command = "mtr {{ server_from.ip }}"

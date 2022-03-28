@@ -18,6 +18,7 @@ pub mod udp_echo;
 pub mod http;
 pub mod broadcast;
 pub mod analyzer_event;
+pub mod analysis;
 
 #[macro_use] extern crate failure;
 extern crate mehsh_common;
@@ -124,6 +125,12 @@ fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
         }
 
 
+    }
+
+    for anylsis_entry in config.all_anylisis() {
+        if check.from.identifier.to_string() != name_self.as_str() {
+            continue;
+        }
     }
 
     rt.spawn(async move {

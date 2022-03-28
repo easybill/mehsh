@@ -73,6 +73,16 @@ pub struct RawConfigGroup {
     name: String,
 }
 
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct RawConfigAnalysis {
+    name: String,
+    from: String,
+    to: String,
+    min_loss: u32,
+    command: String,
+}
+
 #[derive(Deserialize, Debug, Clone)]
 pub struct RawConfigCheck {
     from: String,
@@ -86,6 +96,7 @@ pub struct RawConfig {
     server: Vec<RawConfigServer>,
     group: Vec<RawConfigGroup>,
     check: Option<Vec<RawConfigCheck>>,
+    analysis: Option<Vec<RawConfigAnalysis>>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,6 +107,7 @@ pub struct Config {
     server: Vec<ConfigServer>,
     group: Vec<RawConfigGroup>,
     check: Option<Vec<RawConfigCheck>>,
+    analysis: Option<Vec<RawConfigAnalysis>>,
 }
 
 pub type ServerIdentifier = String;
@@ -112,6 +124,15 @@ pub struct ConfigCheck {
     pub to: Ident,
     pub check: String,
     pub http_url: Option<String>,
+}
+
+#[derive(Clone)]
+pub struct ConfigAnalysis {
+    pub name: String,
+    pub from: Ident,
+    pub to: Ident,
+    pub min_loss: u32,
+    pub command: String,
 }
 
 impl Config {
@@ -145,7 +166,38 @@ impl Config {
             server: servers,
             check: raw_config.check,
             group: raw_config.group,
+            analysis: raw_config.analysis,
         })
+    }
+
+    pub fn all_anylisis(&self) -> Result<Vec<ConfigAnalysis>, Error> {
+        let mut buf = HashMap::new();
+        match &self.analysis {
+            None => {}
+            Some(analysis) => {
+                for analysis_entry in analysis {
+                    for from in &self.resolve_idents(analysis_entry.from.clone())? {
+                        for to in &self.resolve_idents(analysis_entry.to.clone())? {
+                            let key = (from.identifier.clone(), to.identifier.clone(), analysis_entry.name.clone());
+                            if buf.contains_key(&key) {
+                                eprintln!("warning, you defined the same analysis multiple times. from: {}, to: {}, analysis: {}", from.identifier.clone(), to.identifier.clone(), analysis_entry.name);
+                                continue;
+                            }
+
+                            buf.insert(key, ConfigAnalysis {
+                                from: from.clone(),
+                                to: to.clone(),
+                                name: analysis_entry.name.clone(),
+                                command: analysis_entry.command.clone(),
+                                min_loss: analysis_entry.min_loss.clone(),
+                            });
+                        }
+                    }
+                }
+            }
+        };
+
+        Ok(buf.into_iter().map(|(_k, v)| v).collect::<Vec<_>>())
     }
 
     pub fn all_checks(&self) -> Result<Vec<ConfigCheck>, Error> {
@@ -181,6 +233,10 @@ impl Config {
         File::open(filename)?.read_to_end(&mut content)?;
 
         Self::new_from_bytes(self_server_identifier, &content)
+    }
+
+    pub fn is_server_or_is_in_group(&self, server_or_group_identifier : &str) -> bool {
+            self.server_self.identifier == server_or_group_identifier || self.server_self.groups.contains(&server_or_group_identifier.to_string())
     }
 
     pub fn get_server_by_identifier(&self, identifier: &ServerIdentifier) -> Option<&ConfigServer> {
