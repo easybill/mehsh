@@ -170,7 +170,7 @@ impl Config {
         })
     }
 
-    pub fn all_anylisis(&self) -> Result<Vec<ConfigAnalysis>, Error> {
+    pub fn all_analyisis(&self) -> Result<Vec<ConfigAnalysis>, Error> {
         let mut buf = HashMap::new();
         match &self.analysis {
             None => {}
