@@ -2,6 +2,7 @@ use crate::udp_echo::analyzer_event::UdpEchoAnalyzerEventServer;
 use crate::{BroadcastEvent, ExecuteAnalysisCommandHandler};
 use chrono::{DateTime, Duration, Utc};
 use mehsh_common::config::ConfigAnalysis;
+use crate::maintenance_mode::MaintenanceMode;
 
 pub struct AnalyzerEventSubscriberAnalysis {
     do_not_collect_until: DateTime<Utc>,
@@ -57,6 +58,11 @@ impl AnalyzerEventSubscriberAnalysis {
 
         if Utc::now() < self.do_not_collect_until {
             println!("analysis {} - skip already runned", &self.config_analysis.name);
+            return;
+        }
+
+        if MaintenanceMode::is_active().await {
+            println!("analysis {} - skip MAINTANCE MODE", &self.config_analysis.name);
             return;
         }
 

@@ -21,6 +21,7 @@ pub mod analyzer_event;
 pub mod broadcast;
 pub mod http;
 pub mod udp_echo;
+pub mod maintenance_mode;
 
 #[macro_use]
 extern crate failure;

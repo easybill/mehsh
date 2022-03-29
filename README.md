@@ -179,4 +179,13 @@ to = "databaseservers"
 check = "udp_ping"
 ```
 
-now you could start mehsh on each server with the corrent `--name` argument. The name defaults to the hostname. 
+now you could start mehsh on each server with the corrent `--name` argument. The name defaults to the hostname.
+
+### Maintenance Mode
+
+Mehsh checks if the file `/tmp/mehsh_maintenance` exists.
+if the file exists mehsh will be put into maintenance mode.
+In maintenance mode, no more analysis tools are started and metrics no longer send a loss. The maintenance mode is included in the output.
+```
+touch /tmp/mehsh_maintenance
+```

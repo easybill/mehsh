@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use serverdensity_udpserver_lib::create_package_sum;
 use std::net::SocketAddrV4;
 use tokio::net::UdpSocket;
+use crate::maintenance_mode::MaintenanceMode;
 
 const UDPSERVER_ENDPOINT: &str = "127.0.0.1:1113";
 
@@ -48,7 +49,12 @@ impl AnalyzerEventSubscriberUdpMetric {
         sock: &mut UdpSocket,
         event: UdpEchoAnalyzerEventServer,
     ) -> Result<(), ::anyhow::Error> {
-        let loss = event.req_count - event.resp_count;
+        let loss = if MaintenanceMode::is_active().await {
+            0
+        } else {
+            event.req_count - event.resp_count
+        };
+
         let target: SocketAddrV4 = "127.0.0.1:1113".parse()?;
 
         sock.send_to(
