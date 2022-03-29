@@ -72,12 +72,14 @@ impl ExecuteAnalysisCommandHandler {
                         continue;
                     }
 
-
                     let execute_config = config_analysis.clone();
                     let execute_sender = execute_sender.clone();
                     let jh = ::tokio::spawn(async move {
                         match execute_analysis_command(&execute_config, execute_sender.clone()).await {
-                            Ok(_) => {},
+                            Ok(exit_status) if exit_status.success() => {},
+                            Ok(exit_status) => {
+                                println!("analysis tool failed with exit code {:?}", exit_status.code());
+                            },
                             Err(e) => println!("WARNING, could not execute analysis command {}", e),
                         };
                         execute_sender.send(ExecuteMsg::Finish(())).expect("could not send notify_command_finished");
@@ -89,7 +91,7 @@ impl ExecuteAnalysisCommandHandler {
                         started: Utc::now(),
                     });
 
-                    println!("started analysis {} from {} to {}.", &config_analysis.name, &config_analysis.from.identifier, &config_analysis.to.identifier);
+                    println!("analysis {} started - from {} to {}.", &config_analysis.name, &config_analysis.from.identifier, &config_analysis.to.identifier);
                 },
                 res = execute_receiver.recv() => {
                     let res : ExecuteMsg = match res {
@@ -110,11 +112,11 @@ impl ExecuteAnalysisCommandHandler {
                             context.jh.abort(); // it must be already aborted.
 
 
-                            println!("finished analysis {}", &config_analysis.name);
+                            println!("analysis {} finished", &config_analysis.name);
 
                             match write_report_file(&config_analysis, &context).await {
                                 Ok(filename) => {
-                                    println!("wrote analysis {} report to {}", &config_analysis.name, filename);
+                                    println!("analysis {} - wrote report to {}", &config_analysis.name, filename);
                                 },
                                 Err(e) => {
                                     println!("WARNING, could not write report {}", e);
@@ -124,7 +126,7 @@ impl ExecuteAnalysisCommandHandler {
                             command_execution_context = None;
                         },
                         ExecuteMsg::CliOutput(mut msg) => {
-                            println!("analysis {} output: {}", &config_analysis.name, String::from_utf8_lossy(&msg));
+                            println!("analysis {} - output: {}", &config_analysis.name, String::from_utf8_lossy(&msg));
 
                             match command_execution_context {
                                 None => println!("WARNING, command execution context is empty. should never happen"),

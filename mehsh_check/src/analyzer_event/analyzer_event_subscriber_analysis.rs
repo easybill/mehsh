@@ -56,7 +56,7 @@ impl AnalyzerEventSubscriberAnalysis {
         }
 
         if Utc::now() < self.do_not_collect_until {
-            println!("skip, analysis already runned");
+            println!("analysis {} - skip already runned", &self.config_analysis.name);
             return;
         }
 
