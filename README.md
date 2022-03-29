@@ -77,8 +77,10 @@ Fields:
 ```
 
 ### Automatically run network analysis tools in case of losses
-Some hosters (e.g. [hetzner](https://docs.hetzner.com/de/robot/dedicated-server/troubleshooting/network-diagnosis-and-report-to-hetzner/)) want you to send them analysis with certain tools in case of network problems.
+Some hosters (e.g. [hetzner](https://docs.hetzner.com/de/robot/dedicated-server/troubleshooting/network-diagnosis-and-report-to-hetzner/)) want you to send them analysis with certain tools in case of network issues.
 A common tool is [mtr](https://en.wikipedia.org/wiki/MTR_(software)) but theoretically it could be any tool.
+
+When you want to execute tools like mtr using Mehsh you might need to run Mehsh as root because mtr needs to run as root.
 
 ```toml
 [[analysis]]
