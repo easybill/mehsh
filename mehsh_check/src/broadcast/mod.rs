@@ -5,4 +5,3 @@ pub enum BroadcastEvent {
     UdpEchoAnalyzerEventServer(UdpEchoAnalyzerEventServer),
     UdpEchoAnalyzerEventDatacenter(UdpEchoAnalyzerEventDatacenter),
 }
-

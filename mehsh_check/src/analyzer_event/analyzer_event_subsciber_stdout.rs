@@ -1,15 +1,13 @@
-use crate::BroadcastEvent;
 use crate::udp_echo::analyzer_event::{UdpEchoAnalyzerEventDatacenter, UdpEchoAnalyzerEventServer};
+use crate::BroadcastEvent;
 
 pub struct AnalyzerEventSubscriverStout {
-    broadcast_recv: ::tokio::sync::broadcast::Receiver<BroadcastEvent>
+    broadcast_recv: ::tokio::sync::broadcast::Receiver<BroadcastEvent>,
 }
 
 impl AnalyzerEventSubscriverStout {
     pub fn new(broadcast_recv: ::tokio::sync::broadcast::Receiver<BroadcastEvent>) -> Self {
-        Self {
-            broadcast_recv
-        }
+        Self { broadcast_recv }
     }
 
     pub async fn run(mut self) {
@@ -17,16 +15,20 @@ impl AnalyzerEventSubscriverStout {
             match self.broadcast_recv.recv().await {
                 Err(e) => {
                     eprintln!("warning, broadcast std out issue: {}", e);
-                },
-                Ok(event) => match event {
-                    BroadcastEvent::UdpEchoAnalyzerEventServer(e) => self.on_udp_echo_analyzer_event_server(e),
-                    BroadcastEvent::UdpEchoAnalyzerEventDatacenter(e) => self.on_udp_echo_analyzer_event_datacenter(e),
                 }
+                Ok(event) => match event {
+                    BroadcastEvent::UdpEchoAnalyzerEventServer(e) => {
+                        self.on_udp_echo_analyzer_event_server(e)
+                    }
+                    BroadcastEvent::UdpEchoAnalyzerEventDatacenter(e) => {
+                        self.on_udp_echo_analyzer_event_datacenter(e)
+                    }
+                },
             }
         }
     }
 
-    pub fn on_udp_echo_analyzer_event_server(&self, event : UdpEchoAnalyzerEventServer) {
+    pub fn on_udp_echo_analyzer_event_server(&self, event: UdpEchoAnalyzerEventServer) {
         let loss = event.req_count - event.resp_count;
         println!(
             "{} server: {}, ip: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}",
@@ -40,7 +42,7 @@ impl AnalyzerEventSubscriverStout {
             loss, if loss > 0 { "withloss" } else { "withoutloss"}
         );
     }
-    pub fn on_udp_echo_analyzer_event_datacenter(&self, event : UdpEchoAnalyzerEventDatacenter) {
+    pub fn on_udp_echo_analyzer_event_datacenter(&self, event: UdpEchoAnalyzerEventDatacenter) {
         let loss = event.req_count - event.resp_count;
         println!(
             "{} datacenter: {}, req: {:?}, resp: {:?}, max_lat: {:?}, min_lat: {:?}, loss: {:?}, {}",

@@ -1,15 +1,15 @@
-use std::process::{ExitStatus, Output, Stdio};
+use crate::BroadcastEvent;
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
 use futures::channel;
+use mehsh_common::config::ConfigAnalysis;
+use std::process::{ExitStatus, Output, Stdio};
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinHandle;
-use mehsh_common::config::ConfigAnalysis;
-use crate::BroadcastEvent;
 
 type CliOutput = Vec<u8>;
 
@@ -33,9 +33,7 @@ impl ExecuteAnalysisCommandHandler {
     pub fn new(config_analysis: ConfigAnalysis) -> Self {
         let (notify_send, notify_recv) = unbounded_channel::<()>();
 
-        let s = Self {
-            notify_send,
-        };
+        let s = Self { notify_send };
 
         ::tokio::spawn(async move {
             Self::execute(config_analysis, notify_recv).await;
@@ -45,11 +43,14 @@ impl ExecuteAnalysisCommandHandler {
     }
 
     pub fn run_if_not_running(&self) {
-        self.notify_send.send(()).expect("could not notify ExecuteAnalysisCommandHandler");
+        self.notify_send
+            .send(())
+            .expect("could not notify ExecuteAnalysisCommandHandler");
     }
 
     async fn execute(config_analysis: ConfigAnalysis, mut notify_recv: UnboundedReceiver<()>) {
-        let (execute_sender, mut execute_receiver) = ::tokio::sync::mpsc::unbounded_channel::<ExecuteMsg>();
+        let (execute_sender, mut execute_receiver) =
+            ::tokio::sync::mpsc::unbounded_channel::<ExecuteMsg>();
 
         let mut command_execution_context = None;
 
@@ -127,19 +128,28 @@ impl ExecuteAnalysisCommandHandler {
                     };
 
                 }
-            }
-            ;
+            };
         }
     }
 }
 
-async fn write_report_file(config_analysis: &ConfigAnalysis, command_execution_context: &CommandExecutionContext) -> Result<String, ::anyhow::Error> {
-    let directory = format!("/tmp/mehsh/{}/{}", &config_analysis.name, &config_analysis.to.identifier);
+async fn write_report_file(
+    config_analysis: &ConfigAnalysis,
+    command_execution_context: &CommandExecutionContext,
+) -> Result<String, ::anyhow::Error> {
+    let directory = format!(
+        "/tmp/mehsh/{}/{}",
+        &config_analysis.name, &config_analysis.to.identifier
+    );
 
     ::tokio::fs::create_dir_all(&directory).await?;
 
     let end_date = Utc::now();
-    let filename = format!("{}/{}.txt", &directory, end_date.format("%Y_%m_%d_%H_%M_%S"));
+    let filename = format!(
+        "{}/{}.txt",
+        &directory,
+        end_date.format("%Y_%m_%d_%H_%M_%S")
+    );
 
     let mut file = OpenOptions::new()
         .create_new(true)
@@ -149,22 +159,28 @@ async fn write_report_file(config_analysis: &ConfigAnalysis, command_execution_c
         .await
         .context("could not create report file")?;
 
-    file.write_all(command_execution_context.content.as_slice()).await.context("write command output")?;
+    file.write_all(command_execution_context.content.as_slice())
+        .await
+        .context("write command output")?;
 
     Ok(filename)
 }
 
 fn get_command_with_variables(config: &ConfigAnalysis) -> String {
-    config.command.clone()
+    config
+        .command
+        .clone()
         .replace("{{server.from.ip}}", &config.from.ip.to_string())
         .replace("{{server.to.ip}}", &config.to.ip.to_string())
         .to_string()
 }
 
-async fn execute_analysis_command(config: &ConfigAnalysis, sender: UnboundedSender<ExecuteMsg>) -> Result<ExitStatus, ::anyhow::Error> {
+async fn execute_analysis_command(
+    config: &ConfigAnalysis,
+    sender: UnboundedSender<ExecuteMsg>,
+) -> Result<ExitStatus, ::anyhow::Error> {
     let mut command = Command::new("/bin/bash");
-    let command_with_args = command
-        .args(&["-c", &get_command_with_variables(config)]);
+    let command_with_args = command.args(&["-c", &get_command_with_variables(config)]);
 
     let mut child = command_with_args
         .stdout(Stdio::piped())

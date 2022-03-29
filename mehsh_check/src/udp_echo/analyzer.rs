@@ -1,15 +1,15 @@
+use crate::udp_echo::analyzer_event::{UdpEchoAnalyzerEventDatacenter, UdpEchoAnalyzerEventServer};
+use crate::udp_echo::packet::{Packet, PacketType};
+use crate::BroadcastEvent;
+use chrono::Local;
+use futures::channel::mpsc::{channel, Receiver, Sender};
+use futures::stream::StreamExt;
+use mehsh_common::config::{Config, ServerIdentifier};
 use std::cmp::min;
-use futures::channel::mpsc::{Receiver, channel, Sender};
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
 use tokio::time;
-use futures::stream::StreamExt;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
-use crate::udp_echo::packet::{Packet, PacketType};
-use mehsh_common::config::{Config, ServerIdentifier};
-use chrono::Local;
-use crate::BroadcastEvent;
-use crate::udp_echo::analyzer_event::{UdpEchoAnalyzerEventDatacenter, UdpEchoAnalyzerEventServer};
 
 type RemoteHost = String;
 
@@ -20,7 +20,7 @@ pub struct AnalyzerEvent {
 }
 
 impl AnalyzerEvent {
-    pub fn new(server_identifier : ServerIdentifier, packet: Packet) -> Self {
+    pub fn new(server_identifier: ServerIdentifier, packet: Packet) -> Self {
         AnalyzerEvent {
             server_identifier,
             packet,
@@ -49,7 +49,7 @@ impl Analyzer {
         self.sender.clone()
     }
 
-    pub async fn run(self, mut broadcast : ::tokio::sync::broadcast::Sender<BroadcastEvent>) {
+    pub async fn run(self, mut broadcast: ::tokio::sync::broadcast::Sender<BroadcastEvent>) {
         let mut interval = time::interval(Duration::from_millis(5_000));
         let mut recv = self.receiver;
 
@@ -81,13 +81,14 @@ struct AnalyzerStatsEntry {
 impl AnalyzerStatsEntry {
     pub fn calculate_latency(&self) -> Option<u128> {
         match self.resp_time {
-            Some(resp)  => {
-                Some(resp.duration_since(self.req_time).expect("could not calculate duration").as_micros())
-            },
-            _ => None
+            Some(resp) => Some(
+                resp.duration_since(self.req_time)
+                    .expect("could not calculate duration")
+                    .as_micros(),
+            ),
+            _ => None,
         }
     }
-
 }
 
 struct AnalyzerStats {
@@ -106,16 +107,17 @@ impl AnalyzerStats {
     pub fn add_event(&mut self, event: AnalyzerEvent) {
         let now = SystemTime::now();
 
-        match self.map.entry((event.server_identifier.clone(), event.packet.get_id())) {
+        match self
+            .map
+            .entry((event.server_identifier.clone(), event.packet.get_id()))
+        {
             Entry::Vacant(e) => {
                 let stats_entry = match event.packet.get_type() {
-                    &PacketType::Req => {
-                        AnalyzerStatsEntry {
-                            server_identifier: event.server_identifier,
-                            req_time: now.clone(),
-                            resp_time: None,
-                        }
-                    }
+                    &PacketType::Req => AnalyzerStatsEntry {
+                        server_identifier: event.server_identifier,
+                        req_time: now.clone(),
+                        resp_time: None,
+                    },
                     &PacketType::Resp => {
                         // got a response without a request. ignore ...
                         return;
@@ -148,8 +150,10 @@ impl AnalyzerStats {
 
         for (k, m) in old_map.into_iter() {
             let dur = match now.duration_since(m.req_time) {
-                Err(_) => { continue; }
-                Ok(d) => { d }
+                Err(_) => {
+                    continue;
+                }
+                Ok(d) => d,
             };
 
             if dur.as_secs() < 1 {
@@ -163,11 +167,13 @@ impl AnalyzerStats {
         data
     }
 
-    pub fn aggregate(&self, stats_entries: Vec<AnalyzerStatsEntry>, broadcast: &mut ::tokio::sync::broadcast::Sender<BroadcastEvent>)
-    {
+    pub fn aggregate(
+        &self,
+        stats_entries: Vec<AnalyzerStatsEntry>,
+        broadcast: &mut ::tokio::sync::broadcast::Sender<BroadcastEvent>,
+    ) {
         let mut map = HashMap::new();
         for entry in stats_entries.into_iter() {
-
             match map.entry(entry.server_identifier.clone()) {
                 Entry::Vacant(e) => {
                     let latency = entry.calculate_latency();
@@ -180,7 +186,6 @@ impl AnalyzerStats {
                     });
                 }
                 Entry::Occupied(mut e) => {
-
                     let mut_entry = e.get_mut();
 
                     if entry.resp_time.is_some() {
@@ -192,16 +197,16 @@ impl AnalyzerStats {
                     let latency = entry.calculate_latency();
 
                     match (mut_entry.min_latency, latency) {
-                        (None, None) => {},
-                        (None, Some(new)) => { mut_entry.min_latency = Some(new) }
-                        (Some(curr), Some(new)) if new < curr => { mut_entry.min_latency = Some(new) }
+                        (None, None) => {}
+                        (None, Some(new)) => mut_entry.min_latency = Some(new),
+                        (Some(curr), Some(new)) if new < curr => mut_entry.min_latency = Some(new),
                         _ => {}
                     };
 
                     match (mut_entry.max_latency, latency) {
-                        (None, None) => {},
-                        (None, Some(new)) => { mut_entry.min_latency = Some(new) }
-                        (Some(curr), Some(new)) if new > curr => { mut_entry.max_latency = Some(new) }
+                        (None, None) => {}
+                        (None, Some(new)) => mut_entry.min_latency = Some(new),
+                        (Some(curr), Some(new)) if new > curr => mut_entry.max_latency = Some(new),
                         _ => {}
                     };
                 }
@@ -211,20 +216,25 @@ impl AnalyzerStats {
         // losses by server
         let server_self = self.config.get_server_self();
         for (_, item) in map.iter() {
-            let server_info = self.config.get_server_by_identifier(&item.remote_server_identifier).expect("could not find server, should never happen");
+            let server_info = self
+                .config
+                .get_server_by_identifier(&item.remote_server_identifier)
+                .expect("could not find server, should never happen");
             let server_ip = server_info.ip.clone();
 
-            match broadcast.send(BroadcastEvent::UdpEchoAnalyzerEventServer(UdpEchoAnalyzerEventServer {
-                date_time: Local::now(),
-                server_from: server_self.identifier.to_string(),
-                server_to: item.remote_server_identifier.to_string(),
-                server_to_ip: server_ip,
-                req_count : item.req_count,
-                resp_count : item.resp_count,
-                max_latency : item.max_latency,
-                min_latency : item.min_latency,
-            })) {
-                Ok(_) => {},
+            match broadcast.send(BroadcastEvent::UdpEchoAnalyzerEventServer(
+                UdpEchoAnalyzerEventServer {
+                    date_time: Local::now(),
+                    server_from: server_self.identifier.to_string(),
+                    server_to: item.remote_server_identifier.to_string(),
+                    server_to_ip: server_ip,
+                    req_count: item.req_count,
+                    resp_count: item.resp_count,
+                    max_latency: item.max_latency,
+                    min_latency: item.min_latency,
+                },
+            )) {
+                Ok(_) => {}
                 Err(e) => {
                     eprintln!("warning, issue with broadcasting server event: {:?}", e)
                 }
@@ -232,11 +242,14 @@ impl AnalyzerStats {
         }
 
         let datacenter_map = {
-            let mut buffer : HashMap<String, AggregatedDatacenterStatsEntry> = HashMap::new();
+            let mut buffer: HashMap<String, AggregatedDatacenterStatsEntry> = HashMap::new();
 
             // losses by dc
             for (_, item) in map.iter() {
-                let server_info = self.config.get_server_by_identifier(&item.remote_server_identifier).expect("could not find server, should never happen");
+                let server_info = self
+                    .config
+                    .get_server_by_identifier(&item.remote_server_identifier)
+                    .expect("could not find server, should never happen");
 
                 for datacenter in &server_info.datacenter_as_entries {
                     match buffer.entry(datacenter.to_string()) {
@@ -264,25 +277,31 @@ impl AnalyzerStats {
             buffer
         };
 
-        let datacenter_self = self.config.get_server_self().datacenter.clone().unwrap_or("".to_string());
+        let datacenter_self = self
+            .config
+            .get_server_self()
+            .datacenter
+            .clone()
+            .unwrap_or("".to_string());
         for (_, item) in datacenter_map.iter() {
-            match broadcast.send(BroadcastEvent::UdpEchoAnalyzerEventDatacenter(UdpEchoAnalyzerEventDatacenter {
-                date_time: Local::now(),
-                server_from: server_self.identifier.to_string(),
-                datacenter_from: datacenter_self.to_string(),
-                datacenter_to: item.datacenter.to_string(),
-                req_count : item.req_count,
-                resp_count : item.resp_count,
-                max_latency : item.max_latency,
-                min_latency : item.min_latency,
-            })) {
-                Ok(_) => {},
+            match broadcast.send(BroadcastEvent::UdpEchoAnalyzerEventDatacenter(
+                UdpEchoAnalyzerEventDatacenter {
+                    date_time: Local::now(),
+                    server_from: server_self.identifier.to_string(),
+                    datacenter_from: datacenter_self.to_string(),
+                    datacenter_to: item.datacenter.to_string(),
+                    req_count: item.req_count,
+                    resp_count: item.resp_count,
+                    max_latency: item.max_latency,
+                    min_latency: item.min_latency,
+                },
+            )) {
+                Ok(_) => {}
                 Err(e) => {
                     eprintln!("warning, issue with broadcasting datacenter event: {:?}", e)
                 }
             };
         }
-
     }
 }
 

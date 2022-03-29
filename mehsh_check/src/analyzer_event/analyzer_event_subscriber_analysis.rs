@@ -1,7 +1,7 @@
+use crate::udp_echo::analyzer_event::UdpEchoAnalyzerEventServer;
+use crate::{BroadcastEvent, ExecuteAnalysisCommandHandler};
 use chrono::{DateTime, Duration, Utc};
 use mehsh_common::config::ConfigAnalysis;
-use crate::{BroadcastEvent, ExecuteAnalysisCommandHandler};
-use crate::udp_echo::analyzer_event::UdpEchoAnalyzerEventServer;
 
 pub struct AnalyzerEventSubscriberAnalysis {
     do_not_collect_until: DateTime<Utc>,
@@ -11,12 +11,17 @@ pub struct AnalyzerEventSubscriberAnalysis {
 }
 
 impl AnalyzerEventSubscriberAnalysis {
-    pub fn new(config_analysis: ConfigAnalysis, broadcast_recv: ::tokio::sync::broadcast::Receiver<BroadcastEvent>) -> Self {
+    pub fn new(
+        config_analysis: ConfigAnalysis,
+        broadcast_recv: ::tokio::sync::broadcast::Receiver<BroadcastEvent>,
+    ) -> Self {
         Self {
             do_not_collect_until: Utc::now() + Duration::seconds(20),
-            execute_analysis_command_handler: ExecuteAnalysisCommandHandler::new(config_analysis.clone()),
+            execute_analysis_command_handler: ExecuteAnalysisCommandHandler::new(
+                config_analysis.clone(),
+            ),
             config_analysis,
-            broadcast_recv
+            broadcast_recv,
         }
     }
 
@@ -25,11 +30,13 @@ impl AnalyzerEventSubscriberAnalysis {
             match self.broadcast_recv.recv().await {
                 Err(e) => {
                     eprintln!("warning, broadcast std out issue: {}", e);
-                },
-                Ok(event) => match event {
-                    BroadcastEvent::UdpEchoAnalyzerEventServer(e) => self.on_udp_echo_analyzer_event_server(e).await,
-                    _ => {}
                 }
+                Ok(event) => match event {
+                    BroadcastEvent::UdpEchoAnalyzerEventServer(e) => {
+                        self.on_udp_echo_analyzer_event_server(e).await
+                    }
+                    _ => {}
+                },
             }
         }
     }

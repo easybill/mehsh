@@ -1,8 +1,8 @@
-use reqwest::StatusCode;
-use mehsh_common::config::Config;
-use futures::channel::mpsc::{Receiver, channel, Sender};
-use tokio::time::Duration;
+use futures::channel::mpsc::{channel, Receiver, Sender};
 use futures::StreamExt;
+use mehsh_common::config::Config;
+use reqwest::StatusCode;
+use tokio::time::Duration;
 
 pub struct HttpAnalyzerEvent {
     status: Result<StatusCode, String>,
@@ -10,9 +10,7 @@ pub struct HttpAnalyzerEvent {
 
 impl HttpAnalyzerEvent {
     pub fn new(status: Result<StatusCode, String>) -> Self {
-        HttpAnalyzerEvent {
-            status,
-        }
+        HttpAnalyzerEvent { status }
     }
 }
 
@@ -53,4 +51,3 @@ impl HttpAnalyzer {
         }
     }
 }
-

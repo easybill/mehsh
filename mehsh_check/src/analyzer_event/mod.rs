@@ -1,3 +1,3 @@
 pub mod analyzer_event_subsciber_stdout;
-pub mod analyzer_event_subscriber_udp_metric;
 pub mod analyzer_event_subscriber_analysis;
+pub mod analyzer_event_subscriber_udp_metric;

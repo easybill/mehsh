@@ -1,11 +1,11 @@
-use std::fs::File;
-use std::io::Read;
+use crate::config::allow_addr::AllowIp;
 use failure::Error;
 use serde::Deserialize;
-use std::path::PathBuf;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use crate::config::allow_addr::AllowIp;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::Read;
+use std::path::PathBuf;
 
 mod allow_addr;
 
@@ -30,31 +30,40 @@ pub struct ConfigServer {
 }
 
 impl ConfigServer {
-    pub fn from_raw_config_server(raw : RawConfigServer) -> Self {
+    pub fn from_raw_config_server(raw: RawConfigServer) -> Self {
         let datacenter_as_entries = {
-          let mut buf = vec![];
+            let mut buf = vec![];
 
-            let dc = raw.datacenter.clone().unwrap_or("no-datacenter".to_string());
+            let dc = raw
+                .datacenter
+                .clone()
+                .unwrap_or("no-datacenter".to_string());
 
             let mut path_to_travel = dc;
             let mut path_traveled = "".to_string();
             loop {
                 match path_to_travel.clone().split_once(".") {
                     Some((s1, s2)) => {
-                        buf.push(format!("{}{}", path_traveled, s1).trim_start_matches(".").to_string());
+                        buf.push(
+                            format!("{}{}", path_traveled, s1)
+                                .trim_start_matches(".")
+                                .to_string(),
+                        );
                         path_to_travel = s2.to_string();
                         path_traveled.push_str(&format!("{}.", s1))
-                    },
+                    }
                     None => {
-                        buf.push(format!("{}{}", path_traveled, path_to_travel).trim_start_matches(".").to_string());
+                        buf.push(
+                            format!("{}{}", path_traveled, path_to_travel)
+                                .trim_start_matches(".")
+                                .to_string(),
+                        );
                         break;
                     }
-
                 };
             }
 
             buf
-
         };
 
         Self {
@@ -72,7 +81,6 @@ impl ConfigServer {
 pub struct RawConfigGroup {
     name: String,
 }
-
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct RawConfigAnalysis {
@@ -136,12 +144,17 @@ pub struct ConfigAnalysis {
 }
 
 impl Config {
-    pub fn new_from_bytes(self_server_identifier: ServerIdentifier, content: &[u8]) -> Result<Self, Error> {
+    pub fn new_from_bytes(
+        self_server_identifier: ServerIdentifier,
+        content: &[u8],
+    ) -> Result<Self, Error> {
         let raw_config = toml::from_slice::<RawConfig>(content)?;
 
-        let servers = raw_config.server.iter().map(|s| {
-            ConfigServer::from_raw_config_server(s.clone())
-        }).collect::<Vec<_>>();
+        let servers = raw_config
+            .server
+            .iter()
+            .map(|s| ConfigServer::from_raw_config_server(s.clone()))
+            .collect::<Vec<_>>();
 
         let servers_by_identifiers = {
             let mut map = HashMap::new();
@@ -156,8 +169,10 @@ impl Config {
             .iter()
             .find(|v| v.identifier == self_server_identifier)
             .map(|v| v.clone())
-            .expect(&format!("could not find server {} in config", self_server_identifier.as_str()))
-            ;
+            .expect(&format!(
+                "could not find server {} in config",
+                self_server_identifier.as_str()
+            ));
 
         Ok(Config {
             self_server_identifier,
@@ -178,19 +193,26 @@ impl Config {
                 for analysis_entry in analysis {
                     for from in &self.resolve_idents(analysis_entry.from.clone())? {
                         for to in &self.resolve_idents(analysis_entry.to.clone())? {
-                            let key = (from.identifier.clone(), to.identifier.clone(), analysis_entry.name.clone());
+                            let key = (
+                                from.identifier.clone(),
+                                to.identifier.clone(),
+                                analysis_entry.name.clone(),
+                            );
                             if buf.contains_key(&key) {
                                 eprintln!("warning, you defined the same analysis multiple times. from: {}, to: {}, analysis: {}", from.identifier.clone(), to.identifier.clone(), analysis_entry.name);
                                 continue;
                             }
 
-                            buf.insert(key, ConfigAnalysis {
-                                from: from.clone(),
-                                to: to.clone(),
-                                name: analysis_entry.name.clone(),
-                                command: analysis_entry.command.clone(),
-                                min_loss: analysis_entry.min_loss.clone(),
-                            });
+                            buf.insert(
+                                key,
+                                ConfigAnalysis {
+                                    from: from.clone(),
+                                    to: to.clone(),
+                                    name: analysis_entry.name.clone(),
+                                    command: analysis_entry.command.clone(),
+                                    min_loss: analysis_entry.min_loss.clone(),
+                                },
+                            );
                         }
                     }
                 }
@@ -208,17 +230,25 @@ impl Config {
                 for check in checks {
                     for from in &self.resolve_idents(check.from.clone())? {
                         for to in &self.resolve_idents(check.to.clone())? {
-                            let key = (from.identifier.clone(), to.identifier.clone(), check.check.clone(), check.http_url.clone());
+                            let key = (
+                                from.identifier.clone(),
+                                to.identifier.clone(),
+                                check.check.clone(),
+                                check.http_url.clone(),
+                            );
                             if buf.contains_key(&key) {
                                 eprintln!("warning, you defined the same check multiple times. from: {}, to: {}, check: {}", from.identifier.clone(), to.identifier.clone(), check.check.clone());
                             }
 
-                            buf.insert(key, ConfigCheck {
-                                from: from.clone(),
-                                to: to.clone(),
-                                check: check.check.clone(),
-                                http_url: check.http_url.clone(),
-                            });
+                            buf.insert(
+                                key,
+                                ConfigCheck {
+                                    from: from.clone(),
+                                    to: to.clone(),
+                                    check: check.check.clone(),
+                                    http_url: check.http_url.clone(),
+                                },
+                            );
                         }
                     }
                 }
@@ -228,15 +258,22 @@ impl Config {
         Ok(buf.into_iter().map(|(_k, v)| v).collect::<Vec<_>>())
     }
 
-    pub fn new_from_file(self_server_identifier: ServerIdentifier, filename: PathBuf) -> Result<Self, Error> {
+    pub fn new_from_file(
+        self_server_identifier: ServerIdentifier,
+        filename: PathBuf,
+    ) -> Result<Self, Error> {
         let mut content = Vec::new();
         File::open(filename)?.read_to_end(&mut content)?;
 
         Self::new_from_bytes(self_server_identifier, &content)
     }
 
-    pub fn is_server_or_is_in_group(&self, server_or_group_identifier : &str) -> bool {
-            self.server_self.identifier == server_or_group_identifier || self.server_self.groups.contains(&server_or_group_identifier.to_string())
+    pub fn is_server_or_is_in_group(&self, server_or_group_identifier: &str) -> bool {
+        self.server_self.identifier == server_or_group_identifier
+            || self
+                .server_self
+                .groups
+                .contains(&server_or_group_identifier.to_string())
     }
 
     pub fn get_server_by_identifier(&self, identifier: &ServerIdentifier) -> Option<&ConfigServer> {
@@ -248,7 +285,8 @@ impl Config {
     }
 
     pub fn resolve_idents<I>(&self, raw_identifier: I) -> Result<Vec<Ident>, Error>
-        where I: AsRef<str> + Sized
+    where
+        I: AsRef<str> + Sized,
     {
         let identifier: &str = raw_identifier.as_ref();
         let raw_servers = {
@@ -286,20 +324,19 @@ impl Config {
         }
 
         if let Some(s) = raw_servers.get(identifier) {
-            return Ok(vec![
-                Ident {
-                    identifier: s.identifier.clone(),
-                    ip: AllowIp::V4(s.ip.parse()?),
-                }
-            ]);
+            return Ok(vec![Ident {
+                identifier: s.identifier.clone(),
+                ip: AllowIp::V4(s.ip.parse()?),
+            }]);
         }
 
         if let Some(_) = raw_groups.get(identifier) {
             let mut buf = vec![];
 
-            let servers_in_group = raw_servers.iter().filter(|(_, s)| {
-                s.groups.contains(&identifier.to_string())
-            }).collect::<Vec<_>>();
+            let servers_in_group = raw_servers
+                .iter()
+                .filter(|(_, s)| s.groups.contains(&identifier.to_string()))
+                .collect::<Vec<_>>();
 
             for (_, s) in servers_in_group.iter() {
                 buf.push(Ident {
@@ -315,7 +352,6 @@ impl Config {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,7 +362,8 @@ mod tests {
 
     #[test]
     fn test_basic_servers() {
-        let c = load_config(r#"
+        let c = load_config(
+            r#"
 [[group]]
 name = "g1"
 
@@ -343,25 +380,35 @@ groups = ["g1"]
 name = "server2"
 ip = "127.0.0.2"
 groups = ["g1", "g2"]
-        "#.as_bytes());
-
-        assert_eq!(
-            vec!["server1", "server2"],
-            {
-                let mut v = c.resolve_idents("g1").unwrap().iter().map(|x| x.identifier.clone()).collect::<Vec<_>>();
-                v.sort();
-                v
-            }
+        "#
+            .as_bytes(),
         );
+
+        assert_eq!(vec!["server1", "server2"], {
+            let mut v = c
+                .resolve_idents("g1")
+                .unwrap()
+                .iter()
+                .map(|x| x.identifier.clone())
+                .collect::<Vec<_>>();
+            v.sort();
+            v
+        });
 
         assert_eq!(
             vec!["server2"],
-            c.resolve_idents("g2").unwrap().iter().map(|x| x.identifier.clone()).collect::<Vec<_>>()
+            c.resolve_idents("g2")
+                .unwrap()
+                .iter()
+                .map(|x| x.identifier.clone())
+                .collect::<Vec<_>>()
         );
 
         assert_eq!(
             vec!["fra", "fra.dc11", "fra.dc11.foo", "fra.dc11.foo.xyz"],
-            c.get_server_by_identifier(&"server1".to_string()).expect("server must exists").datacenter_as_entries
+            c.get_server_by_identifier(&"server1".to_string())
+                .expect("server must exists")
+                .datacenter_as_entries
         );
     }
 }
