@@ -31,12 +31,17 @@ enum ExecuteMsg {
 
 impl ExecuteAnalysisCommandHandler {
     pub fn new(config_analysis: ConfigAnalysis) -> Self {
-        let (notify_send, notify_recv) = unbounded_channel::<()>();
+        let (notify_send, mut notify_recv) = unbounded_channel::<()>();
 
         let s = Self { notify_send };
 
         ::tokio::spawn(async move {
-            Self::execute(config_analysis, notify_recv).await;
+            loop {
+                match Self::execute(config_analysis.clone(), &mut notify_recv).await {
+                    Ok(_) => { println!("WARNING, ExecuteAnalysisCommandHandler::execute finished, should never happen"); },
+                    Err(e) => { println!("WARNING, ExecuteAnalysisCommandHandler::execute finished with error, should never happen: {}", e); },
+                }
+            }
         });
 
         s
@@ -48,7 +53,7 @@ impl ExecuteAnalysisCommandHandler {
             .expect("could not notify ExecuteAnalysisCommandHandler");
     }
 
-    async fn execute(config_analysis: ConfigAnalysis, mut notify_recv: UnboundedReceiver<()>) {
+    async fn execute(config_analysis: ConfigAnalysis, mut notify_recv: &mut UnboundedReceiver<()>) -> Result<(), ::anyhow::Error> {
         let (execute_sender, mut execute_receiver) =
             ::tokio::sync::mpsc::unbounded_channel::<ExecuteMsg>();
 
@@ -71,7 +76,10 @@ impl ExecuteAnalysisCommandHandler {
                     let execute_config = config_analysis.clone();
                     let execute_sender = execute_sender.clone();
                     let jh = ::tokio::spawn(async move {
-                        execute_analysis_command(&execute_config, execute_sender.clone()).await;
+                        match execute_analysis_command(&execute_config, execute_sender.clone()).await {
+                            Ok(_) => {},
+                            Err(e) => println!("WARNING, could not execute analysis command {}", e),
+                        };
                         execute_sender.send(ExecuteMsg::Finish(())).expect("could not send notify_command_finished");
                     });
 
@@ -93,7 +101,7 @@ impl ExecuteAnalysisCommandHandler {
                         ExecuteMsg::Finish(_msg) => {
                             let context = match command_execution_context {
                                 None => {
-                                    println!("ERROR: command execution must exists");
+                                    println!("WARNING: command execution must exists");
                                     continue;
                                 },
                                 Some(ref mut c) => c,
@@ -109,7 +117,7 @@ impl ExecuteAnalysisCommandHandler {
                                     println!("wrote analysis {} report to {}", &config_analysis.name, filename);
                                 },
                                 Err(e) => {
-                                    println!("Warning, could not write report {}", e);
+                                    println!("WARNING, could not write report {}", e);
                                 }
                             };
 
@@ -119,7 +127,7 @@ impl ExecuteAnalysisCommandHandler {
                             println!("analysis {} output: {}", &config_analysis.name, String::from_utf8_lossy(&msg));
 
                             match command_execution_context {
-                                None => println!("warning, command execution context is empty. should never happen"),
+                                None => println!("WARNING, command execution context is empty. should never happen"),
                                 Some(ref mut context) => {
                                     context.content.append(&mut msg)
                                 }
