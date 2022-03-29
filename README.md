@@ -76,6 +76,22 @@ Fields:
 # repeats every second.
 ```
 
+### Automatically run network analysis tools in case of losses
+Some hosters (e.g. [hetzner](https://docs.hetzner.com/de/robot/dedicated-server/troubleshooting/network-diagnosis-and-report-to-hetzner/)) want you to send them analysis with certain tools in case of network problems.
+A common tool is [mtr](https://en.wikipedia.org/wiki/MTR_(software)) but theoretically it could be any tool.
+
+```toml
+[[analysis]]
+from = "local" # server from
+to = "all" # server to
+name = "mtr" # just a name
+min_loss = 20
+command = "mtr -s 1000 -r -c 1000 {{server.to.ip}}" # the command you want to run
+```
+
+Mehsh will execute the command and create a file with the output in `/tmp/mehsh/[NAME]/[SERVER_TO]/[DATE_TIME].txt`.
+The output is also visible in Mehsh stdout.
+
 ### Example 2 (lamp stack)
 
 ```mermaid
