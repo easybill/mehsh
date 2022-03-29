@@ -53,7 +53,7 @@ impl ExecuteAnalysisCommandHandler {
             .expect("could not notify ExecuteAnalysisCommandHandler");
     }
 
-    async fn execute(config_analysis: ConfigAnalysis, mut notify_recv: &mut UnboundedReceiver<()>) -> Result<(), ::anyhow::Error> {
+    async fn execute(config_analysis: ConfigAnalysis, notify_recv: &mut UnboundedReceiver<()>) -> Result<(), ::anyhow::Error> {
         let (execute_sender, mut execute_receiver) =
             ::tokio::sync::mpsc::unbounded_channel::<ExecuteMsg>();
 
