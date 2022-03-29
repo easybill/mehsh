@@ -32,6 +32,13 @@ impl AnalyzerEventSubscriberAnalysis {
     }
 
     pub async fn on_udp_echo_analyzer_event_server(&self, event: UdpEchoAnalyzerEventServer) {
+        if event.server_to != self.config_analysis.to.identifier {
+            return;
+        }
+        if event.server_from != self.config_analysis.from.identifier {
+            return;
+        }
+
         let loss = event.req_count - event.resp_count;
 
         if (loss as u32) < self.config_analysis.min_loss {

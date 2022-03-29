@@ -90,6 +90,8 @@ fn try_main(opt : Opt, rt : Runtime) -> Result<(), Error> {
             continue;
         }
 
+        println!("preparing analysis {} from: {} to: {}", &analysis_entry.name, &analysis_entry.from.identifier, &analysis_entry.to.identifier);
+
         let udp_boardcast_recv = broardcast_sender.subscribe();
 
         rt.spawn(async move {

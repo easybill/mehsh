@@ -25,4 +25,4 @@ from = "local"
 to = "all"
 name = "mtr"
 min_loss = 20
-command = "mtr -s 1 -r -c {{server.to.ip}}"
+command = "mtr -s 1 -r -c 1 {{server.to.ip}}"

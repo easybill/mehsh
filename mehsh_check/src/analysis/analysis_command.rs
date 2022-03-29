@@ -23,9 +23,14 @@ struct CommandExecutionContext {
     started: DateTime<Utc>,
 }
 
-impl ExecuteAnalysisCommandHandler {
+#[derive(Debug)]
+enum ExecuteMsg {
+    CliOutput(CliOutput),
+    Finish(()),
+}
 
-    pub fn new(config_analysis : ConfigAnalysis) -> Self {
+impl ExecuteAnalysisCommandHandler {
+    pub fn new(config_analysis: ConfigAnalysis) -> Self {
         let (notify_send, notify_recv) = unbounded_channel::<()>();
 
         let s = Self {
@@ -43,9 +48,8 @@ impl ExecuteAnalysisCommandHandler {
         self.notify_send.send(()).expect("could not notify ExecuteAnalysisCommandHandler");
     }
 
-    async fn execute(config_analysis : ConfigAnalysis, mut notify_recv : UnboundedReceiver<()>) {
-        let (execute_sender, mut execute_receiver) = ::tokio::sync::mpsc::unbounded_channel::<CliOutput>();
-        let (notify_command_finished_sender, mut notify_command_finished_receiver) = unbounded_channel::<()>();
+    async fn execute(config_analysis: ConfigAnalysis, mut notify_recv: UnboundedReceiver<()>) {
+        let (execute_sender, mut execute_receiver) = ::tokio::sync::mpsc::unbounded_channel::<ExecuteMsg>();
 
         let mut command_execution_context = None;
 
@@ -65,10 +69,9 @@ impl ExecuteAnalysisCommandHandler {
 
                     let execute_config = config_analysis.clone();
                     let execute_sender = execute_sender.clone();
-                    let notify_command_finished = notify_command_finished_sender.clone();
                     let jh = ::tokio::spawn(async move {
-                        execute_analysis_command(&execute_config, execute_sender).await;
-                        notify_command_finished.send(()).expect("could not send notify_command_finished");
+                        execute_analysis_command(&execute_config, execute_sender.clone()).await;
+                        execute_sender.send(ExecuteMsg::Finish(())).expect("could not send notify_command_finished");
                     });
 
                     command_execution_context = Some(CommandExecutionContext {
@@ -77,60 +80,60 @@ impl ExecuteAnalysisCommandHandler {
                         started: Utc::now(),
                     });
 
-                    println!("started analysis {}.", &config_analysis.name);
-                },
-                // command finished
-                res = notify_command_finished_receiver.recv() => {
-                    if res.is_none() {
-                        continue;
-                    }
-
-                    let context = match command_execution_context {
-                        None => {
-                            println!("ERROR: command execution must exists");
-                            continue;
-                        },
-                        Some(ref mut c) => c,
-                    };
-
-                    context.jh.abort(); // it must be already aborted.
-
-
-                    println!("finished analysis {}", &config_analysis.name);
-
-                    match write_report_file(&config_analysis, &context).await {
-                        Ok(filename) => {
-                            println!("wrote analysis {} report to {}", &config_analysis.name, filename);
-                        },
-                        Err(e) => {
-                            println!("Warning, could not write report {}", e);
-                        }
-                    };
-
-                    command_execution_context = None;
+                    println!("started analysis {} from {} to {}.", &config_analysis.name, &config_analysis.from.identifier, &config_analysis.to.identifier);
                 },
                 res = execute_receiver.recv() => {
-                    let mut res = match res {
+                    let mut res : ExecuteMsg = match res {
                         Some(s) => s,
                         None => continue,
                     };
 
-                    println!("analysis {} output: {}", &config_analysis.name, String::from_utf8_lossy(&res));
+                    match res {
+                        ExecuteMsg::Finish(msg) => {
+                            let context = match command_execution_context {
+                                None => {
+                                    println!("ERROR: command execution must exists");
+                                    continue;
+                                },
+                                Some(ref mut c) => c,
+                            };
 
-                    match command_execution_context {
-                        None => println!("warning, command execution context is empty. should never happen"),
-                        Some(ref mut context) => {
-                            context.content.append(&mut res)
+                            context.jh.abort(); // it must be already aborted.
+
+
+                            println!("finished analysis {}", &config_analysis.name);
+
+                            match write_report_file(&config_analysis, &context).await {
+                                Ok(filename) => {
+                                    println!("wrote analysis {} report to {}", &config_analysis.name, filename);
+                                },
+                                Err(e) => {
+                                    println!("Warning, could not write report {}", e);
+                                }
+                            };
+
+                            command_execution_context = None;
+                        },
+                        ExecuteMsg::CliOutput(mut msg) => {
+                            println!("analysis {} output: {}", &config_analysis.name, String::from_utf8_lossy(&msg));
+
+                            match command_execution_context {
+                                None => println!("warning, command execution context is empty. should never happen"),
+                                Some(ref mut context) => {
+                                    context.content.append(&mut msg)
+                                }
+                            };
                         }
                     };
+
                 }
-            };
+            }
+            ;
         }
     }
 }
 
-async fn write_report_file(config_analysis : &ConfigAnalysis, command_execution_context: &CommandExecutionContext) -> Result<String, ::anyhow::Error> {
-
+async fn write_report_file(config_analysis: &ConfigAnalysis, command_execution_context: &CommandExecutionContext) -> Result<String, ::anyhow::Error> {
     let directory = format!("/tmp/mehsh/{}/{}", &config_analysis.name, &config_analysis.to.identifier);
 
     ::tokio::fs::create_dir_all(&directory).await?;
@@ -151,14 +154,14 @@ async fn write_report_file(config_analysis : &ConfigAnalysis, command_execution_
     Ok(filename)
 }
 
- fn get_command_with_variables(config : &ConfigAnalysis) -> String {
-     config.command.clone()
-         .replace("{{server.from.ip}}", &config.from.ip.to_string())
-         .replace("{{server.to.ip}}", &config.to.ip.to_string())
-         .to_string()
+fn get_command_with_variables(config: &ConfigAnalysis) -> String {
+    config.command.clone()
+        .replace("{{server.from.ip}}", &config.from.ip.to_string())
+        .replace("{{server.to.ip}}", &config.to.ip.to_string())
+        .to_string()
 }
 
-async fn execute_analysis_command(config : &ConfigAnalysis, sender: UnboundedSender<CliOutput>) -> Result<ExitStatus, ::anyhow::Error> {
+async fn execute_analysis_command(config: &ConfigAnalysis, sender: UnboundedSender<ExecuteMsg>) -> Result<ExitStatus, ::anyhow::Error> {
     let mut command = Command::new("/bin/bash");
     let command_with_args = command
         .args(&["-c", &get_command_with_variables(config)]);
@@ -192,14 +195,14 @@ async fn execute_analysis_command(config : &ConfigAnalysis, sender: UnboundedSen
                 if out.len() == 0 {
                     continue;
                 }
-                sender.send(out.to_vec())?;
+                sender.send(ExecuteMsg::CliOutput(out.to_vec()))?;
             },
             stderr_read_res = stderr.read(&mut stderr_buffer) => {
                 let out : &[u8] = &stderr_buffer[..stderr_read_res.context("could not read stdout_read_res")?];
                 if out.len() == 0 {
                     continue;
                 }
-                sender.send(out.to_vec())?;
+                sender.send(ExecuteMsg::CliOutput(out.to_vec()))?;
             },
             res = child.wait() => {
                 return res.map_err(|e| anyhow!(e));
