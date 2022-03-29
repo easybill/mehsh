@@ -7,7 +7,7 @@ impl MaintenanceMode {
         let file = "/tmp/mehsh_maintenance";
         let metadata = match fs::metadata(file).await {
             Ok(f) => f,
-            Err(e) => {
+            Err(_e) => {
                 return false;
             }
         };

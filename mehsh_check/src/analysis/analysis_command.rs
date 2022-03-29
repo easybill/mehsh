@@ -181,7 +181,13 @@ fn get_command_with_variables(config: &ConfigAnalysis) -> String {
         .command
         .clone()
         .replace("{{server.from.ip}}", &config.from.ip.to_string())
+        .replace("{{server.from.extra1}}", &config.from.extra1.clone().unwrap_or("".to_string()))
+        .replace("{{server.from.extra2}}", &config.from.extra2.clone().unwrap_or("".to_string()))
+        .replace("{{server.from.extra3}}", &config.from.extra3.clone().unwrap_or("".to_string()))
         .replace("{{server.to.ip}}", &config.to.ip.to_string())
+        .replace("{{server.to.extra1}}", &config.to.extra1.clone().unwrap_or("".to_string()))
+        .replace("{{server.to.extra2}}", &config.to.extra2.clone().unwrap_or("".to_string()))
+        .replace("{{server.to.extra3}}", &config.to.extra3.clone().unwrap_or("".to_string()))
         .to_string()
 }
 

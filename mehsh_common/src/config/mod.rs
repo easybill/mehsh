@@ -17,6 +17,9 @@ pub struct RawConfigServer {
     pub ip: String,
     pub groups: Vec<String>,
     pub serverdensity_udp_agent: Option<bool>,
+    pub extra1: Option<String>,
+    pub extra2: Option<String>,
+    pub extra3: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +30,9 @@ pub struct ConfigServer {
     pub ip: String,
     pub groups: Vec<String>,
     pub serverdensity_udp_agent: bool,
+    pub extra1: Option<String>,
+    pub extra2: Option<String>,
+    pub extra3: Option<String>,
 }
 
 impl ConfigServer {
@@ -73,6 +79,9 @@ impl ConfigServer {
             ip: raw.ip,
             groups: raw.groups,
             serverdensity_udp_agent: raw.serverdensity_udp_agent.unwrap_or(false),
+            extra1: raw.extra1,
+            extra2: raw.extra2,
+            extra3: raw.extra3,
         }
     }
 }
@@ -137,8 +146,8 @@ pub struct ConfigCheck {
 #[derive(Clone)]
 pub struct ConfigAnalysis {
     pub name: String,
-    pub from: Ident,
-    pub to: Ident,
+    pub from: ConfigServer,
+    pub to: ConfigServer,
     pub min_loss: u32,
     pub command: String,
 }
@@ -202,12 +211,12 @@ impl Config {
                                 eprintln!("warning, you defined the same analysis multiple times. from: {}, to: {}, analysis: {}", from.identifier.clone(), to.identifier.clone(), analysis_entry.name);
                                 continue;
                             }
-
+                            
                             buf.insert(
                                 key,
                                 ConfigAnalysis {
-                                    from: from.clone(),
-                                    to: to.clone(),
+                                    from: self.get_server_by_identifier(&from.identifier).expect("invalid server in analysis from, should never happen.").clone(),
+                                    to: self.get_server_by_identifier(&from.identifier).expect("invalid server in analysis from, should never happen.").clone(),
                                     name: analysis_entry.name.clone(),
                                     command: analysis_entry.command.clone(),
                                     min_loss: analysis_entry.min_loss.clone(),
