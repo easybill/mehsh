@@ -1,8 +1,10 @@
+use chrono::{DateTime, Duration, Utc};
 use mehsh_common::config::ConfigAnalysis;
 use crate::{BroadcastEvent, ExecuteAnalysisCommandHandler};
 use crate::udp_echo::analyzer_event::UdpEchoAnalyzerEventServer;
 
 pub struct AnalyzerEventSubscriberAnalysis {
+    do_not_collect_until: DateTime<Utc>,
     config_analysis: ConfigAnalysis,
     broadcast_recv: ::tokio::sync::broadcast::Receiver<BroadcastEvent>,
     execute_analysis_command_handler: ExecuteAnalysisCommandHandler,
@@ -11,6 +13,7 @@ pub struct AnalyzerEventSubscriberAnalysis {
 impl AnalyzerEventSubscriberAnalysis {
     pub fn new(config_analysis: ConfigAnalysis, broadcast_recv: ::tokio::sync::broadcast::Receiver<BroadcastEvent>) -> Self {
         Self {
+            do_not_collect_until: Utc::now() + Duration::seconds(20),
             execute_analysis_command_handler: ExecuteAnalysisCommandHandler::new(config_analysis.clone()),
             config_analysis,
             broadcast_recv
@@ -31,7 +34,7 @@ impl AnalyzerEventSubscriberAnalysis {
         }
     }
 
-    pub async fn on_udp_echo_analyzer_event_server(&self, event: UdpEchoAnalyzerEventServer) {
+    pub async fn on_udp_echo_analyzer_event_server(&mut self, event: UdpEchoAnalyzerEventServer) {
         if event.server_to != self.config_analysis.to.identifier {
             return;
         }
@@ -45,6 +48,13 @@ impl AnalyzerEventSubscriberAnalysis {
             return;
         }
 
+        if Utc::now() < self.do_not_collect_until {
+            println!("skip, analysis already runned");
+            return;
+        }
+
         self.execute_analysis_command_handler.run_if_not_running();
+
+        self.do_not_collect_until = Utc::now() + Duration::seconds(120);
     }
 }
