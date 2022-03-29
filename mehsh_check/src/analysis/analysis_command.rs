@@ -1,13 +1,13 @@
-use crate::BroadcastEvent;
+
 use anyhow::{anyhow, Context};
 use chrono::{DateTime, Utc};
-use futures::channel;
+
 use mehsh_common::config::ConfigAnalysis;
-use std::process::{ExitStatus, Output, Stdio};
+use std::process::{ExitStatus, Stdio};
 use tokio::fs::OpenOptions;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::sync::broadcast::Receiver;
+
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinHandle;
 
@@ -84,13 +84,13 @@ impl ExecuteAnalysisCommandHandler {
                     println!("started analysis {} from {} to {}.", &config_analysis.name, &config_analysis.from.identifier, &config_analysis.to.identifier);
                 },
                 res = execute_receiver.recv() => {
-                    let mut res : ExecuteMsg = match res {
+                    let res : ExecuteMsg = match res {
                         Some(s) => s,
                         None => continue,
                     };
 
                     match res {
-                        ExecuteMsg::Finish(msg) => {
+                        ExecuteMsg::Finish(_msg) => {
                             let context = match command_execution_context {
                                 None => {
                                     println!("ERROR: command execution must exists");
