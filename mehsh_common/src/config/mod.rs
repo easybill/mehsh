@@ -216,7 +216,7 @@ impl Config {
                                 key,
                                 ConfigAnalysis {
                                     from: self.get_server_by_identifier(&from.identifier).expect("invalid server in analysis from, should never happen.").clone(),
-                                    to: self.get_server_by_identifier(&from.identifier).expect("invalid server in analysis from, should never happen.").clone(),
+                                    to: self.get_server_by_identifier(&to.identifier).expect("invalid server in analysis to, should never happen.").clone(),
                                     name: analysis_entry.name.clone(),
                                     command: analysis_entry.command.clone(),
                                     min_loss: analysis_entry.min_loss.clone(),

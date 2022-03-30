@@ -95,6 +95,10 @@ fn try_main(opt: Opt, rt: Runtime) -> Result<(), Error> {
             continue;
         }
 
+        if analysis_entry.to.identifier.to_string() == name_self.as_str() {
+            continue;
+        }
+
         println!(
             "preparing analysis {} from: {} to: {}",
             &analysis_entry.name, &analysis_entry.from.identifier, &analysis_entry.to.identifier
