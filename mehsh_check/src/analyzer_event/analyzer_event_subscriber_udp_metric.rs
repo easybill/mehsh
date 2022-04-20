@@ -1,7 +1,7 @@
 use crate::udp_echo::analyzer_event::{UdpEchoAnalyzerEventDatacenter, UdpEchoAnalyzerEventServer};
 use crate::BroadcastEvent;
 use anyhow::anyhow;
-use serverdensity_udpserver_lib::create_package_sum;
+use serverdensity_udpserver_lib::{create_package_peak, create_package_sum};
 use std::net::SocketAddrV4;
 use tokio::net::UdpSocket;
 use crate::maintenance_mode::MaintenanceMode;
@@ -58,7 +58,7 @@ impl AnalyzerEventSubscriberUdpMetric {
         let target: SocketAddrV4 = "127.0.0.1:1113".parse()?;
 
         sock.send_to(
-            create_package_sum("mehsh.loss", loss as i32)
+            create_package_peak("mehsh.loss", loss as i32)
                 .map_err(|e| anyhow!(e))?
                 .as_slice(),
             target,
