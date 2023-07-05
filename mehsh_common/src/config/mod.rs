@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use anyhow::Context;
 
 mod allow_addr;
 
@@ -156,7 +157,9 @@ impl Config {
         self_server_identifier: ServerIdentifier,
         content: &[u8],
     ) -> Result<Self, ::anyhow::Error> {
-        let raw_config = toml::from_slice::<RawConfig>(content)?;
+        let raw_config = toml::from_str::<RawConfig>(
+            String::from_utf8(content.to_vec()).context("could not read toml, invalid utf8")?.as_str()
+        )?;
 
         let servers = raw_config
             .server
