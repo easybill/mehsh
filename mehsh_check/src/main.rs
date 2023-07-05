@@ -7,7 +7,6 @@ use crate::analyzer_event::analyzer_event_subscriber_udp_metric::AnalyzerEventSu
 use crate::broadcast::BroadcastEvent;
 use crate::http::http_analyzer::HttpAnalyzer;
 use crate::http::http_check::HttpCheck;
-use failure::Error;
 use mehsh_common::config::Config;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -24,7 +23,6 @@ pub mod udp_echo;
 pub mod maintenance_mode;
 
 #[macro_use]
-extern crate failure;
 extern crate mehsh_common;
 
 #[derive(StructOpt, Debug)]
@@ -56,7 +54,7 @@ fn main() {
         Err(err) => {
             eprintln!("{:?}", &err);
 
-            for cause in err.iter_causes() {
+            for cause in err.chain().into_iter() {
                 println!("{:?}", cause);
             }
         }
@@ -64,7 +62,7 @@ fn main() {
     }
 }
 
-fn try_main(opt: Opt, rt: Runtime) -> Result<(), Error> {
+fn try_main(opt: Opt, rt: Runtime) -> Result<(), ::anyhow::Error> {
     let name_self = opt.name.replace(
         "[hostname]",
         hostname::get()

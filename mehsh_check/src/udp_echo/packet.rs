@@ -1,6 +1,6 @@
 use bytes::{Buf, BufMut, BytesMut};
-use failure::Error;
 use std::mem::size_of;
+use anyhow::anyhow;
 
 const PACKAGE_MAGIC: u32 = 326134347;
 
@@ -50,9 +50,9 @@ impl Packet {
         buf.to_vec()
     }
 
-    pub fn new_from_raw(data: &[u8]) -> Result<Self, Error> {
+    pub fn new_from_raw(data: &[u8]) -> Result<Self, ::anyhow::Error> {
         if data.len() < PACKAGE_SIZE {
-            return Err(format_err!("invalid packet size"));
+            return Err(anyhow!("invalid packet size"));
         }
 
         let mut buf = &data[..];
@@ -60,7 +60,7 @@ impl Packet {
         let magic_byte = buf.get_u32();
 
         if magic_byte != PACKAGE_MAGIC {
-            return Err(format_err!("invalid packet magic"));
+            return Err(anyhow!("invalid packet magic"));
         }
 
         let version = buf.get_u32();
@@ -68,7 +68,7 @@ impl Packet {
         let packet_type = match buf.get_u16() {
             1 => PacketType::Req,
             2 => PacketType::Resp,
-            _ => return Err(format_err!("unknown packet type")),
+            _ => return Err(anyhow!("unknown packet type")),
         };
 
         Ok(Packet {

@@ -1,5 +1,4 @@
 use crate::config::allow_addr::AllowIp;
-use failure::Error;
 use serde::Deserialize;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
@@ -156,7 +155,7 @@ impl Config {
     pub fn new_from_bytes(
         self_server_identifier: ServerIdentifier,
         content: &[u8],
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, ::anyhow::Error> {
         let raw_config = toml::from_slice::<RawConfig>(content)?;
 
         let servers = raw_config
@@ -194,7 +193,7 @@ impl Config {
         })
     }
 
-    pub fn all_analyisis(&self) -> Result<Vec<ConfigAnalysis>, Error> {
+    pub fn all_analyisis(&self) -> Result<Vec<ConfigAnalysis>, ::anyhow::Error> {
         let mut buf = HashMap::new();
         match &self.analysis {
             None => {}
@@ -231,7 +230,7 @@ impl Config {
         Ok(buf.into_iter().map(|(_k, v)| v).collect::<Vec<_>>())
     }
 
-    pub fn all_checks(&self) -> Result<Vec<ConfigCheck>, Error> {
+    pub fn all_checks(&self) -> Result<Vec<ConfigCheck>, ::anyhow::Error> {
         let mut buf = HashMap::new();
         match &self.check {
             None => {}
@@ -270,7 +269,7 @@ impl Config {
     pub fn new_from_file(
         self_server_identifier: ServerIdentifier,
         filename: PathBuf,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, ::anyhow::Error> {
         let mut content = Vec::new();
         File::open(filename)?.read_to_end(&mut content)?;
 
@@ -293,7 +292,7 @@ impl Config {
         &self.server_self
     }
 
-    pub fn resolve_idents<I>(&self, raw_identifier: I) -> Result<Vec<Ident>, Error>
+    pub fn resolve_idents<I>(&self, raw_identifier: I) -> Result<Vec<Ident>, ::anyhow::Error>
     where
         I: AsRef<str> + Sized,
     {

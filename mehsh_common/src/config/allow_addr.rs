@@ -1,5 +1,5 @@
-use failure::Error;
 use std::net::Ipv4Addr;
+use anyhow::anyhow;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AllowAddrPort {
@@ -32,7 +32,7 @@ impl AllowIp {
 }
 
 impl AllowAddrPort {
-    pub fn new_from_str(s: &str) -> Result<Self, Error> {
+    pub fn new_from_str(s: &str) -> Result<Self, ::anyhow::Error> {
         if s == "*" {
             return Ok(AllowAddrPort::AnyPort);
         }
@@ -44,14 +44,14 @@ impl AllowAddrPort {
         let parts: Vec<_> = s.split('-').map(|s| s.to_string()).collect();
 
         if parts.len() != 2 {
-            return Err(format_err!("could not decode addr port {}", s));
+            return Err(anyhow!("could not decode addr port {}", s));
         }
 
         let min = {
             if let Ok(k) = parts[0].parse() {
                 Ok(k)
             } else {
-                Err(format_err!("could not decode (min) addr port {}", s))
+                Err(anyhow!("could not decode (min) addr port {}", s))
             }
         }?;
 
@@ -59,12 +59,12 @@ impl AllowAddrPort {
             if let Ok(k) = parts[1].parse() {
                 Ok(k)
             } else {
-                Err(format_err!("could not decode (max) addr port {}", s))
+                Err(anyhow!("could not decode (max) addr port {}", s))
             }
         }?;
 
         if parts[0] > parts[1] {
-            return Err(format_err!("range mismatch {}", s));
+            return Err(anyhow!("range mismatch {}", s));
         }
 
         Ok(AllowAddrPort::Range(min, max))
@@ -72,7 +72,7 @@ impl AllowAddrPort {
 }
 
 impl AllowAddr {
-    fn parse_v4(data: &str) -> Result<Self, Error> {
+    fn parse_v4(data: &str) -> Result<Self, ::anyhow::Error> {
         let parts: Vec<_> = data
             .trim_start_matches("v4:")
             .split(':')
@@ -90,15 +90,15 @@ impl AllowAddr {
             ));
         }
 
-        Err(format_err!("nöpe"))
+        Err(anyhow!("nöpe"))
     }
 
-    pub fn new_from_str(data: &str) -> Result<Self, Error> {
+    pub fn new_from_str(data: &str) -> Result<Self, ::anyhow::Error> {
         if data.starts_with("v4:") {
             return Self::parse_v4(data);
         }
 
-        Err(format_err!("could not parse '{}' the identifier should start with 'v4:', 'v6:', 'server:' or 'group:'", data))
+        Err(anyhow!("could not parse '{}' the identifier should start with 'v4:', 'v6:', 'server:' or 'group:'", data))
     }
 }
 

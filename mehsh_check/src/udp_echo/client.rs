@@ -1,6 +1,5 @@
 use crate::udp_echo::analyzer::AnalyzerEvent;
 use crate::udp_echo::packet::Packet;
-use failure::Error;
 use futures::channel::mpsc::Sender;
 use futures::future;
 use mehsh_common::config::ConfigCheck;
@@ -23,7 +22,7 @@ impl Client {
     pub async fn new(
         check: ConfigCheck,
         client_analyzer_sender: Sender<AnalyzerEvent>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, ::anyhow::Error> {
         let host = format!("{}:4232", check.to.ip.to_string());
         let remote_socket: SocketAddr = host.parse()?;
         Ok(Client {
@@ -34,7 +33,7 @@ impl Client {
         })
     }
 
-    pub async fn run(self) -> Result<(), Error> {
+    pub async fn run(self) -> Result<(), ::anyhow::Error> {
         let remote_socket = self.remote_socket;
         let local_socket: SocketAddr = "0.0.0.0:0".parse()?;
 

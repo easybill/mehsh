@@ -1,5 +1,4 @@
 use crate::udp_echo::packet::Packet;
-use failure::Error;
 use std::net::SocketAddr;
 use std::net::SocketAddrV4;
 use tokio;
@@ -11,7 +10,7 @@ pub struct Server {
 }
 
 impl Server {
-    pub async fn new(host: &str) -> Result<Self, Error> {
+    pub async fn new(host: &str) -> Result<Self, ::anyhow::Error> {
         let socket: SocketAddrV4 = host.parse()?;
         Ok(Server {
             socket: UdpSocket::bind(socket).await?,
@@ -19,7 +18,7 @@ impl Server {
         })
     }
 
-    pub async fn run(mut self) -> Result<(), Error> {
+    pub async fn run(mut self) -> Result<(), ::anyhow::Error> {
         loop {
             match self.run_loop().await {
                 Err(e) => {
@@ -30,7 +29,7 @@ impl Server {
         }
     }
 
-    async fn run_loop(&mut self) -> Result<(), Error> {
+    async fn run_loop(&mut self) -> Result<(), ::anyhow::Error> {
         let (size, target): (usize, SocketAddr) = self.socket.recv_from(&mut self.buf).await?;
 
         let recv_packet = Packet::new_from_raw(&self.buf[0..size]).expect("could not read package");
