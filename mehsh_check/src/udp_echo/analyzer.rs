@@ -83,7 +83,7 @@ impl AnalyzerStatsEntry {
         match self.resp_time {
             Some(resp) => Some(
                 resp.duration_since(self.req_time)
-                    .expect("could not calculate duration")
+                    .unwrap_or(Duration::from_micros(0))
                     .as_micros(),
             ),
             _ => None,
