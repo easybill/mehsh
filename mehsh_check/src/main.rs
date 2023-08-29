@@ -9,7 +9,7 @@ use crate::http::http_analyzer::HttpAnalyzer;
 use crate::http::http_check::HttpCheck;
 use mehsh_common::config::Config;
 use std::path::PathBuf;
-use structopt::StructOpt;
+use clap::Parser;
 use tokio::runtime::{Builder, Runtime};
 use udp_echo::analyzer::Analyzer;
 use udp_echo::client::Client;
@@ -25,14 +25,13 @@ pub mod maintenance_mode;
 #[macro_use]
 extern crate mehsh_common;
 
-#[derive(StructOpt, Debug)]
-#[structopt(name = "basic")]
+#[derive(Parser, Debug)]
 struct Opt {
     /// Files to process
-    #[structopt(name = "config", parse(from_os_str))]
+    #[arg(name = "config")]
     config: PathBuf,
 
-    #[structopt(long = "name", default_value = "[hostname]")]
+    #[arg(long = "name", default_value = "[hostname]")]
     name: String,
     /*
     #[structopt(long = "privatekey")]
@@ -41,7 +40,7 @@ struct Opt {
 }
 
 fn main() {
-    let opt = Opt::from_args();
+    let opt = Opt::parse();
     println!("opt: {:#?}", &opt);
 
     let rt: Runtime = Builder::new_multi_thread()
