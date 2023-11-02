@@ -1,7 +1,7 @@
 use crate::udp_echo::analyzer_event::{UdpEchoAnalyzerEventDatacenter, UdpEchoAnalyzerEventServer};
 use crate::BroadcastEvent;
 use anyhow::anyhow;
-use serverdensity_udpserver_lib::{create_package_peak, create_package_sum};
+use openmetrics_udpserver_lib::{create_package_peak, create_package_sum};
 use std::net::SocketAddrV4;
 use tokio::net::UdpSocket;
 use crate::maintenance_mode::MaintenanceMode;
