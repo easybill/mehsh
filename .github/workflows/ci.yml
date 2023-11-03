@@ -24,25 +24,29 @@ jobs:
           # linux target
           - { os: 'ubuntu-latest', target: 'x86_64-unknown-linux-musl', arch: 'x86_64', osn: 'ubuntu-latest' }
           - { os: 'ubuntu-latest', target: 'aarch64-unknown-linux-musl', arch: 'aarch64', osn: 'ubuntu-latest' }
+
     steps:
-      - name: Set output
-        id: vars
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          target: ${{ matrix.platform.target }}
-          override: true
-      - uses: actions-rs/cargo@v1
+          targets: ${{ matrix.platform.target }}
+
+      - name: Compile
+        uses: clechasseur/rs-cargo@v2
         with:
           use-cross: true
           command: build
           args: --release --target ${{ matrix.platform.target }} --bin mehsh_check
-      - name: mv artifacts
+
+      - name: Copy artifacts
         run: |
           mkdir -p artifact
           mv target/${{ matrix.platform.target }}/release/mehsh_check artifact/mehsh_${{ matrix.platform.osn }}_${{ matrix.platform.arch }}
+
       - name: Prepare output artifact for next step
         uses: actions/upload-artifact@v3
         with:
@@ -52,17 +56,15 @@ jobs:
   release:
     runs-on: 'ubuntu-latest'
     needs: [ "build" ]
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     steps:
       - name: download artifacts
         uses: actions/download-artifact@v3
         with:
           path: binaries
-      - name: install packages
-        run: |
-          ls .
+
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           fail_on_unmatched_files: true
           files: |
